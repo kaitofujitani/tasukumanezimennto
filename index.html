@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>タスク管理</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --text: #1d2129; --muted: #6b7280;
+    --border: #e3e5e8; --accent: #2563eb;
+    --high: #dc2626; --mid: #d97706; --low: #059669;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15171a; --card: #1e2125; --text: #e8eaed; --muted: #9aa0a6;
+      --border: #2e3237; --accent: #60a5fa;
+      --high: #f87171; --mid: #fbbf24; --low: #34d399;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 32px 16px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .summary { color: var(--muted); font-size: .9rem; margin-bottom: 20px; }
+
+  form {
+    display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px;
+  }
+  @media (max-width: 560px) { form { grid-template-columns: 1fr 1fr; } form input[name=title] { grid-column: 1 / -1; } }
+  input, select, button {
+    font: inherit; color: inherit; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;
+  }
+  button.primary { background: var(--accent); color: #fff; border: none; cursor: pointer; font-weight: 600; }
+
+  .toolbar { display: flex; gap: 8px; margin: 16px 0 8px; flex-wrap: wrap; }
+  .toolbar button { cursor: pointer; }
+  .toolbar button.active { border-color: var(--accent); color: var(--accent); }
+  .toolbar .spacer { flex: 1; }
+
+  ul { list-style: none; padding: 0; margin: 0; }
+  li {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--card); border: 1px solid var(--border);
+    border-left: 4px solid var(--prio); border-radius: 8px;
+    padding: 10px 12px; margin-bottom: 8px;
+  }
+  li.high { --prio: var(--high); } li.mid { --prio: var(--mid); } li.low { --prio: var(--low); }
+  li.done .title { text-decoration: line-through; color: var(--muted); }
+  li input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); }
+  .title { flex: 1; word-break: break-word; cursor: text; }
+  .title input { width: 100%; }
+  .due { font-size: .85rem; color: var(--muted); white-space: nowrap; }
+  .due.overdue { color: var(--high); font-weight: 600; }
+  .del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 4px 6px; }
+  .del:hover { color: var(--high); }
+  .empty { text-align: center; color: var(--muted); padding: 32px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>タスク管理</h1>
+  <div class="summary" id="summary"></div>
+
+  <form id="form">
+    <input name="title" placeholder="新しいタスク…" required autocomplete="off">
+    <input name="due" type="date">
+    <select name="priority">
+      <option value="high">高</option>
+      <option value="mid" selected>中</option>
+      <option value="low">低</option>
+    </select>
+    <button class="primary">追加</button>
+  </form>
+
+  <div class="toolbar">
+    <button data-filter="all">すべて</button>
+    <button data-filter="active">未完了</button>
+    <button data-filter="done">完了</button>
+    <span class="spacer"></span>
+    <select id="sort">
+      <option value="created">作成順</option>
+      <option value="due">期限順</option>
+      <option value="priority">優先度順</option>
+    </select>
+    <button id="clear">完了を削除</button>
+  </div>
+
+  <ul id="list"></ul>
+</main>
+
+<script>
+  const KEY = "tasks.v1";
+  const PRIO = { high: 0, mid: 1, low: 2 };
+  const PRIO_LABEL = { high: "高", mid: "中", low: "低" };
+
+  let tasks = load();
+  let filter = "all";
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(tasks)); } catch {}
+  }
+
+  const $ = (s) => document.querySelector(s);
+  const today = () => new Date().toISOString().slice(0, 10);
+
+  function render() {
+    const sort = $("#sort").value;
+    let view = tasks.filter(t =>
+      filter === "all" || (filter === "done" ? t.done : !t.done));
+
+    view.sort((a, b) => {
+      if (sort === "due") return (a.due || "9999").localeCompare(b.due || "9999");
+      if (sort === "priority") return PRIO[a.priority] - PRIO[b.priority];
+      return a.created - b.created;
+    });
+
+    const list = $("#list");
+    list.innerHTML = "";
+    if (!view.length) {
+      list.innerHTML = '<li class="empty" style="border:none;background:none">タスクはありません</li>';
+    }
+    for (const t of view) {
+      const li = document.createElement("li");
+      li.className = `${t.priority}${t.done ? " done" : ""}`;
+      li.title = `優先度: ${PRIO_LABEL[t.priority]}`;
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = t.done;
+      cb.onchange = () => { t.done = cb.checked; save(); render(); };
+
+      const title = document.createElement("span");
+      title.className = "title";
+      title.textContent = t.title;
+      title.ondblclick = () => edit(t, title);
+
+      const due = document.createElement("span");
+      due.className = "due";
+      if (t.due) {
+        due.textContent = t.due.replaceAll("-", "/");
+        if (!t.done && t.due < today()) due.classList.add("overdue");
+      }
+
+      const del = document.createElement("button");
+      del.className = "del";
+      del.textContent = "×";
+      del.setAttribute("aria-label", "削除");
+      del.onclick = () => { tasks = tasks.filter(x => x !== t); save(); render(); };
+
+      li.append(cb, title, due, del);
+      list.append(li);
+    }
+
+    const remaining = tasks.filter(t => !t.done).length;
+    $("#summary").textContent = `全 ${tasks.length} 件 / 未完了 ${remaining} 件（ダブルクリックで編集）`;
+    document.querySelectorAll("[data-filter]").forEach(b =>
+      b.classList.toggle("active", b.dataset.filter === filter));
+  }
+
+  function edit(t, el) {
+    const input = document.createElement("input");
+    input.value = t.title;
+    el.replaceChildren(input);
+    input.focus();
+    const commit = () => {
+      const v = input.value.trim();
+      if (v) t.title = v;
+      save(); render();
+    };
+    input.onblur = commit;
+    input.onkeydown = (e) => {
+      if (e.key === "Enter") input.blur();
+      if (e.key === "Escape") { input.onblur = null; render(); }
+    };
+  }
+
+  $("#form").onsubmit = (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const title = f.title.value.trim();
+    if (!title) return;
+    tasks.push({
+      id: crypto.randomUUID?.() || String(Date.now()),
+      title, due: f.due.value, priority: f.priority.value,
+      done: false, created: Date.now(),
+    });
+    save();
+    f.title.value = ""; f.due.value = "";
+    render();
+  };
+
+  document.querySelectorAll("[data-filter]").forEach(b =>
+    b.onclick = () => { filter = b.dataset.filter; render(); });
+  $("#sort").onchange = render;
+  $("#clear").onclick = () => { tasks = tasks.filter(t => !t.done); save(); render(); };
+
+  render();
+</script>
+</body>
+</html>
