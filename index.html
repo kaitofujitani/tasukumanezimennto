@@ -3,18 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>タスク管理</title>
+<title>ボード</title>
 <style>
   :root {
-    --bg: #f6f7f9; --card: #fff; --text: #1d2129; --muted: #6b7280;
-    --border: #e3e5e8; --accent: #2563eb;
-    --high: #dc2626; --mid: #d97706; --low: #059669;
+    --bg: #f6f7f9; --column: #eceef1; --card: #fff; --text: #1d2129; --muted: #6b7280;
+    --border: #e3e5e8; --accent: #2563eb; --danger: #dc2626;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #15171a; --card: #1e2125; --text: #e8eaed; --muted: #9aa0a6;
-      --border: #2e3237; --accent: #60a5fa;
-      --high: #f87171; --mid: #fbbf24; --low: #34d399;
+      --bg: #15171a; --column: #1b1e22; --card: #24282d; --text: #e8eaed; --muted: #9aa0a6;
+      --border: #2e3237; --accent: #60a5fa; --danger: #f87171;
     }
   }
   * { box-sizing: border-box; }
@@ -22,186 +20,389 @@
     margin: 0; background: var(--bg); color: var(--text);
     font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
   }
-  main { max-width: 720px; margin: 0 auto; padding: 32px 16px; }
-  h1 { font-size: 1.5rem; margin: 0 0 4px; }
-  .summary { color: var(--muted); font-size: .9rem; margin-bottom: 20px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 16px; }
+  header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+  h1 { font-size: 1.5rem; margin: 0; }
+  .toolbar { display: flex; gap: 6px; }
 
-  form {
-    display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px;
-    background: var(--card); border: 1px solid var(--border);
+  .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 720px) { .board { grid-template-columns: 1fr; } }
+
+  .column {
+    background: var(--column); border: 2px solid transparent;
     border-radius: 10px; padding: 12px;
   }
-  @media (max-width: 560px) { form { grid-template-columns: 1fr 1fr; } form input[name=title] { grid-column: 1 / -1; } }
-  input, select, button {
-    font: inherit; color: inherit; background: var(--bg);
+  .column.over { border-color: var(--accent); }
+  .column h2 { font-size: 1rem; margin: 0 0 10px; display: flex; justify-content: space-between; }
+  .column h2 .count { color: var(--muted); font-weight: normal; }
+
+  .cards { list-style: none; padding: 0; margin: 0; min-height: 8px; }
+  .card {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; margin-bottom: 8px; cursor: grab;
+  }
+  .card.dragging { opacity: .4; }
+  .card .body { flex: 1; min-width: 0; }
+  .card .title { word-break: break-word; }
+  .card .meta { display: flex; gap: 10px; margin-top: 4px; font-size: .8rem; color: var(--muted); }
+  .del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 2px 6px; }
+  .del:hover { color: var(--danger); }
+  .placeholder { height: 4px; border-radius: 2px; background: var(--accent); margin: 0 0 8px; }
+
+  .column form { display: flex; gap: 6px; margin-top: 4px; }
+  input, select, textarea, button {
+    font: inherit; color: inherit; background: var(--card);
     border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;
   }
-  button.primary { background: var(--accent); color: #fff; border: none; cursor: pointer; font-weight: 600; }
+  .column form input { flex: 1; min-width: 0; }
+  button { cursor: pointer; }
+  button:disabled { opacity: .4; cursor: default; }
+  button.primary { background: var(--accent); color: #fff; border: none; font-weight: 600; }
+  button.danger { color: var(--danger); border-color: var(--danger); background: none; }
 
-  .toolbar { display: flex; gap: 8px; margin: 16px 0 8px; flex-wrap: wrap; }
-  .toolbar button { cursor: pointer; }
-  .toolbar button.active { border-color: var(--accent); color: var(--accent); }
-  .toolbar .spacer { flex: 1; }
-
-  ul { list-style: none; padding: 0; margin: 0; }
-  li {
-    display: flex; align-items: center; gap: 10px;
-    background: var(--card); border: 1px solid var(--border);
-    border-left: 4px solid var(--prio); border-radius: 8px;
-    padding: 10px 12px; margin-bottom: 8px;
+  /* カード詳細画面（S2）。余白は form 側に持たせ、dialog 自体のクリック＝背景のクリックとして扱う */
+  dialog {
+    width: min(480px, calc(100vw - 32px)); padding: 0;
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 12px;
   }
-  li.high { --prio: var(--high); } li.mid { --prio: var(--mid); } li.low { --prio: var(--low); }
-  li.done .title { text-decoration: line-through; color: var(--muted); }
-  li input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); }
-  .title { flex: 1; word-break: break-word; cursor: text; }
-  .title input { width: 100%; }
-  .due { font-size: .85rem; color: var(--muted); white-space: nowrap; }
-  .due.overdue { color: var(--high); font-weight: 600; }
-  .del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 4px 6px; }
-  .del:hover { color: var(--high); }
-  .empty { text-align: center; color: var(--muted); padding: 32px 0; }
+  dialog::backdrop { background: rgb(0 0 0 / .4); }
+  #detail-form { display: grid; gap: 12px; padding: 20px; }
+  #detail-form h2 { font-size: 1.1rem; margin: 0; }
+  #detail-form label { display: grid; gap: 4px; font-size: .85rem; color: var(--muted); }
+  #detail-form label > * { color: var(--text); }
+  #detail-form textarea { resize: vertical; }
+  #detail-form .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
+  #detail-form .order { display: flex; gap: 6px; }
+  #detail-form .order button { flex: 1; }
+  #detail-form .actions { display: flex; justify-content: space-between; margin-top: 4px; }
 </style>
 </head>
 <body>
 <main>
-  <h1>タスク管理</h1>
-  <div class="summary" id="summary"></div>
-
-  <form id="form">
-    <input name="title" placeholder="新しいタスク…" required autocomplete="off">
-    <input name="due" type="date">
-    <select name="priority">
-      <option value="high">高</option>
-      <option value="mid" selected>中</option>
-      <option value="low">低</option>
-    </select>
-    <button class="primary">追加</button>
-  </form>
-
-  <div class="toolbar">
-    <button data-filter="all">すべて</button>
-    <button data-filter="active">未完了</button>
-    <button data-filter="done">完了</button>
-    <span class="spacer"></span>
-    <select id="sort">
-      <option value="created">作成順</option>
-      <option value="due">期限順</option>
-      <option value="priority">優先度順</option>
-    </select>
-    <button id="clear">完了を削除</button>
-  </div>
-
-  <ul id="list"></ul>
+  <header>
+    <h1>ボード</h1>
+    <div class="toolbar">
+      <select id="sort" aria-label="並べ方">
+        <option value="priority">優先度順</option>
+        <option value="due">期限順</option>
+        <option value="created">作成順</option>
+      </select>
+      <button id="sort-btn">並べ替え</button>
+    </div>
+  </header>
+  <div class="board" id="board"></div>
 </main>
 
+<dialog id="detail" aria-labelledby="detail-heading">
+  <form id="detail-form" method="dialog">
+    <h2 id="detail-heading">カードの詳細</h2>
+    <label>タイトル<input name="title" required autocomplete="off"></label>
+    <label>説明文<textarea name="description" rows="4"></textarea></label>
+    <div class="row">
+      <label>優先度
+        <select name="priority">
+          <option value="high">高</option>
+          <option value="mid">中</option>
+          <option value="low">低</option>
+        </select>
+      </label>
+      <label>期限<input name="due" type="date"></label>
+    </div>
+    <div class="row">
+      <label>列<select name="status"></select></label>
+      <div class="order">
+        <button type="button" id="up">上へ</button>
+        <button type="button" id="down">下へ</button>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" id="delete" class="danger">削除</button>
+      <button class="primary">閉じる</button>
+    </div>
+  </form>
+</dialog>
+
 <script>
-  const KEY = "tasks.v1";
-  const PRIO = { high: 0, mid: 1, low: 2 };
+  const KEY = "board.v1";
+  // 列は固定。表示順もこの配列の順
+  const COLUMNS = [
+    { id: "todo", label: "未着手" },
+    { id: "doing", label: "進行中" },
+    { id: "done", label: "完了" },
+  ];
+
+  const PRIO = { high: 0, mid: 1, low: 2 }; // 並べ替え用（小さいほど優先度が高い）
   const PRIO_LABEL = { high: "高", mid: "中", low: "低" };
 
-  let tasks = load();
-  let filter = "all";
+  // カードの形: { id, title, description, priority: "high" | "mid" | "low",
+  //              due: "YYYY-MM-DD" | "", status: "todo" | "doing" | "done", created }
+  // 列内の並び順は cards 配列内の順序で表す
+  let cards = load();
+  let draggingId = null;
 
   function load() {
-    try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; }
+    let data;
+    try { data = JSON.parse(localStorage.getItem(KEY)) || []; } catch { data = []; }
+    // 移行処理: 以前の版で保存したカードには description / priority / due がないので既定値で補う
+    return data.map(c => ({ description: "", priority: "mid", due: "", ...c }));
   }
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(tasks)); } catch {}
+    try { localStorage.setItem(KEY, JSON.stringify(cards)); } catch {}
   }
 
   const $ = (s) => document.querySelector(s);
-  const today = () => new Date().toISOString().slice(0, 10);
 
   function render() {
-    const sort = $("#sort").value;
-    let view = tasks.filter(t =>
-      filter === "all" || (filter === "done" ? t.done : !t.done));
+    const board = $("#board");
+    board.innerHTML = "";
 
-    view.sort((a, b) => {
-      if (sort === "due") return (a.due || "9999").localeCompare(b.due || "9999");
-      if (sort === "priority") return PRIO[a.priority] - PRIO[b.priority];
-      return a.created - b.created;
-    });
+    for (const col of COLUMNS) {
+      const items = cards.filter(c => c.status === col.id);
 
-    const list = $("#list");
-    list.innerHTML = "";
-    if (!view.length) {
-      list.innerHTML = '<li class="empty" style="border:none;background:none">タスクはありません</li>';
+      const section = document.createElement("section");
+      section.className = "column";
+      section.dataset.status = col.id;
+
+      const h2 = document.createElement("h2");
+      const name = document.createElement("span");
+      name.textContent = col.label;
+      const count = document.createElement("span");
+      count.className = "count";
+      count.textContent = items.length;
+      h2.append(name, count);
+
+      const ul = document.createElement("ul");
+      ul.className = "cards";
+      for (const c of items) ul.append(cardEl(c));
+
+      const form = document.createElement("form");
+      const input = document.createElement("input");
+      input.placeholder = "カードを追加…";
+      input.autocomplete = "off";
+      const btn = document.createElement("button");
+      btn.className = "primary";
+      btn.textContent = "追加";
+      form.append(input, btn);
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        const title = input.value.trim();
+        if (!title) return;
+        cards.push({
+          id: crypto.randomUUID?.() || String(Date.now()),
+          title, description: "", priority: "mid", due: "",
+          status: col.id, created: Date.now(),
+        });
+        save(); render();
+        // 続けて入力できるよう、同じ列の入力欄にフォーカスを戻す
+        document.querySelector(`[data-status="${col.id}"] input`).focus();
+      };
+
+      section.ondragover = (e) => onDragOver(e, ul);
+      section.ondragleave = (e) => {
+        if (!section.contains(e.relatedTarget)) clearPlaceholder();
+      };
+      section.ondrop = (e) => onDrop(e, col.id, ul);
+
+      section.append(h2, ul, form);
+      board.append(section);
     }
-    for (const t of view) {
-      const li = document.createElement("li");
-      li.className = `${t.priority}${t.done ? " done" : ""}`;
-      li.title = `優先度: ${PRIO_LABEL[t.priority]}`;
+  }
 
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.checked = t.done;
-      cb.onchange = () => { t.done = cb.checked; save(); render(); };
+  function cardEl(c) {
+    const li = document.createElement("li");
+    li.className = "card";
+    li.draggable = true;
+    li.dataset.id = c.id;
 
-      const title = document.createElement("span");
-      title.className = "title";
-      title.textContent = t.title;
-      title.ondblclick = () => edit(t, title);
+    const body = document.createElement("div");
+    body.className = "body";
 
+    const title = document.createElement("div");
+    title.className = "title";
+    title.textContent = c.title;
+
+    // 優先度と期限（期限は設定されているときだけ表示）
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const prio = document.createElement("span");
+    prio.textContent = `優先度: ${PRIO_LABEL[c.priority]}`;
+    meta.append(prio);
+    if (c.due) {
       const due = document.createElement("span");
-      due.className = "due";
-      if (t.due) {
-        due.textContent = t.due.replaceAll("-", "/");
-        if (!t.done && t.due < today()) due.classList.add("overdue");
-      }
-
-      const del = document.createElement("button");
-      del.className = "del";
-      del.textContent = "×";
-      del.setAttribute("aria-label", "削除");
-      del.onclick = () => { tasks = tasks.filter(x => x !== t); save(); render(); };
-
-      li.append(cb, title, due, del);
-      list.append(li);
+      due.textContent = `期限: ${c.due.replaceAll("-", "/")}`;
+      meta.append(due);
     }
 
-    const remaining = tasks.filter(t => !t.done).length;
-    $("#summary").textContent = `全 ${tasks.length} 件 / 未完了 ${remaining} 件（ダブルクリックで編集）`;
-    document.querySelectorAll("[data-filter]").forEach(b =>
-      b.classList.toggle("active", b.dataset.filter === filter));
+    body.append(title, meta);
+
+    const del = document.createElement("button");
+    del.className = "del";
+    del.textContent = "×";
+    del.setAttribute("aria-label", "削除");
+    del.onclick = (e) => {
+      e.stopPropagation(); // カードのクリック（詳細画面を開く）まで伝わらないようにする
+      cards = cards.filter(x => x !== c); save(); render();
+    };
+
+    // クリック、またはフォーカスして Enter で詳細画面を開く
+    li.tabIndex = 0;
+    li.onclick = () => openDetail(c);
+    // e.target を確認するのは、「×」ボタン上の Enter で詳細画面まで開かないようにするため
+    li.onkeydown = (e) => { if (e.key === "Enter" && e.target === li) openDetail(c); };
+
+    li.ondragstart = (e) => {
+      draggingId = c.id;
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", c.id); // Firefox はデータがないとドラッグが始まらない
+      requestAnimationFrame(() => li.classList.add("dragging"));
+    };
+    li.ondragend = () => {
+      draggingId = null;
+      li.classList.remove("dragging");
+      clearPlaceholder();
+    };
+
+    li.append(body, del);
+    return li;
   }
 
-  function edit(t, el) {
-    const input = document.createElement("input");
-    input.value = t.title;
-    el.replaceChildren(input);
-    input.focus();
-    const commit = () => {
-      const v = input.value.trim();
-      if (v) t.title = v;
-      save(); render();
-    };
-    input.onblur = commit;
-    input.onkeydown = (e) => {
-      if (e.key === "Enter") input.blur();
-      if (e.key === "Escape") { input.onblur = null; render(); }
-    };
+  // マウス位置より下にある最初のカード（＝挿入先の直後のカード）を返す
+  function cardAfter(ul, y) {
+    const els = [...ul.querySelectorAll(".card:not(.dragging)")];
+    return els.find(el => {
+      const r = el.getBoundingClientRect();
+      return y < r.top + r.height / 2;
+    }) || null;
   }
 
-  $("#form").onsubmit = (e) => {
+  function clearPlaceholder() {
+    document.querySelectorAll(".placeholder").forEach(p => p.remove());
+    document.querySelectorAll(".column.over").forEach(s => s.classList.remove("over"));
+  }
+
+  function onDragOver(e, ul) {
+    if (!draggingId) return;
+    e.preventDefault(); // これがないと drop が発火しない
+    const section = ul.parentElement;
+    if (!section.classList.contains("over")) {
+      clearPlaceholder();
+      section.classList.add("over");
+    }
+    let ph = ul.querySelector(".placeholder");
+    if (!ph) {
+      ph = document.createElement("li");
+      ph.className = "placeholder";
+    }
+    const after = cardAfter(ul, e.clientY);
+    if (after) ul.insertBefore(ph, after); else ul.append(ph);
+  }
+
+  function onDrop(e, status, ul) {
+    if (!draggingId) return;
     e.preventDefault();
-    const f = e.target;
-    const title = f.title.value.trim();
-    if (!title) return;
-    tasks.push({
-      id: crypto.randomUUID?.() || String(Date.now()),
-      title, due: f.due.value, priority: f.priority.value,
-      done: false, created: Date.now(),
-    });
-    save();
-    f.title.value = ""; f.due.value = "";
-    render();
+    const card = cards.find(c => c.id === draggingId);
+    if (!card) return;
+    const after = cardAfter(ul, e.clientY);
+
+    cards = cards.filter(c => c !== card);
+    card.status = status;
+    if (after) {
+      cards.splice(cards.findIndex(c => c.id === after.dataset.id), 0, card);
+    } else {
+      cards.push(card);
+    }
+    save(); render();
+  }
+
+  // ---- 自動の並べ替え（F9） ----
+  // ボタンを押したときに cards 配列そのものを並べ直して保存する。
+  // 列は status で絞り込んで表示するので、配列全体を並べれば各列がそれぞれ並ぶ。
+  // その後もドラッグや「上へ」「下へ」で手動調整できる。
+  const byPrio = (a, b) => PRIO[a.priority] - PRIO[b.priority];
+  const byDue = (a, b) => (a.due || "9999-99-99").localeCompare(b.due || "9999-99-99"); // 期限なしは最後
+  const COMPARE = {
+    priority: (a, b) => byPrio(a, b) || byDue(a, b),
+    due: (a, b) => byDue(a, b) || byPrio(a, b),
+    created: (a, b) => a.created - b.created,
   };
 
-  document.querySelectorAll("[data-filter]").forEach(b =>
-    b.onclick = () => { filter = b.dataset.filter; render(); });
-  $("#sort").onchange = render;
-  $("#clear").onclick = () => { tasks = tasks.filter(t => !t.done); save(); render(); };
+  $("#sort-btn").onclick = () => {
+    cards.sort(COMPARE[$("#sort").value]);
+    save(); render();
+  };
+
+  // ---- カード詳細画面 ----
+  // 入力はその場で cards に反映して保存する（「保存」ボタンはない）
+  const detail = $("#detail");
+  const f = $("#detail-form").elements;
+  let editing = null; // 詳細画面で開いているカード
+
+  for (const col of COLUMNS) f.status.add(new Option(col.label, col.id));
+
+  function openDetail(c) {
+    editing = c;
+    f.title.value = c.title;
+    f.description.value = c.description;
+    f.priority.value = c.priority;
+    f.due.value = c.due;
+    f.status.value = c.status;
+    updateOrderButtons();
+    detail.showModal();
+  }
+
+  function commit() { save(); render(); }
+
+  // 同じ列の中での位置に応じて「上へ」「下へ」を押せるかどうかを切り替える
+  function updateOrderButtons() {
+    const same = cards.filter(x => x.status === editing.status);
+    const i = same.indexOf(editing);
+    $("#up").disabled = i <= 0;
+    $("#down").disabled = i === same.length - 1;
+  }
+
+  // dir: -1 で上へ、1 で下へ。同じ列の隣のカードと配列内の位置を入れ替える
+  function move(dir) {
+    const same = cards.filter(x => x.status === editing.status);
+    const other = same[same.indexOf(editing) + dir];
+    if (!other) return;
+    const a = cards.indexOf(editing), b = cards.indexOf(other);
+    [cards[a], cards[b]] = [cards[b], cards[a]];
+    commit(); updateOrderButtons();
+  }
+
+  // タイトルは必須。空のあいだは反映せず、確定時（change）に元の値へ戻す
+  f.title.oninput = () => {
+    const v = f.title.value.trim();
+    if (v) { editing.title = v; commit(); }
+  };
+  f.title.onchange = () => { if (!f.title.value.trim()) f.title.value = editing.title; };
+  f.description.oninput = () => { editing.description = f.description.value; commit(); };
+  f.priority.onchange = () => { editing.priority = f.priority.value; commit(); };
+  f.due.onchange = () => { editing.due = f.due.value; commit(); };
+
+  // 列を変えたら移動先の列の末尾に入れる
+  f.status.onchange = () => {
+    cards = cards.filter(x => x !== editing);
+    editing.status = f.status.value;
+    cards.push(editing);
+    commit(); updateOrderButtons();
+  };
+
+  $("#up").onclick = () => move(-1);
+  $("#down").onclick = () => move(1);
+
+  $("#delete").onclick = () => {
+    if (!confirm(`「${editing.title}」を削除しますか？`)) return;
+    cards = cards.filter(x => x !== editing);
+    commit();
+    detail.close();
+  };
+
+  // 背景（dialog の外側）をクリックしたら閉じる。Esc キーでも閉じる（ブラウザ標準）
+  detail.onclick = (e) => { if (e.target === detail) detail.close(); };
+  detail.onclose = () => { editing = null; };
 
   render();
 </script>
