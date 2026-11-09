@@ -28,6 +28,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **ドラッグ＆ドロップ**: HTML5 Drag and Drop API を使用。`dragover` で `cardAfter()` がマウスの Y 座標から挿入位置を求め、`.placeholder` の線を表示する。`drop` でカードを配列から抜き、`status` を書き換えて挿入先カードの直前（なければ末尾）に入れ直す。タッチ操作では動かない。
 - **詳細画面**: `<dialog id="detail">` を `showModal()` で開く。入力は `oninput` / `onchange` でその場で `editing` に反映して `save()` → `render()` する（保存ボタンはない）。列の変更は移動先の列の末尾に入れ、「上へ」「下へ」は同じ列の隣のカードと配列内の位置を入れ替える。スマホではこの画面が列の移動・並べ替えの手段になる。
 - **テーマ**: 色は `:root` の CSS 変数で定義し、`prefers-color-scheme: dark` で上書きしている。新しい色はこの変数に追加する。
+- **背景写真**: 写真は `images/` に置き、`BACKGROUNDS` 配列（`{ src, credit, url }`）に登録する。`credit` は右下の `#credit` リンクの文言、`url` はそのリンク先（出典ページ）。現在の写真はすべて Wikimedia Commons のもので、ライセンスの詳細は [images/CREDITS.md](images/CREDITS.md) にある。写真を追加・削除したら `BACKGROUNDS` と CREDITS.md の両方を更新する。1枚 500KB 以下を目安に縮小・圧縮して置く。`setBackground()` が開くたびにランダムで1枚選び、読み込めたときだけ `body` に `has-bg` を付ける。`has-bg` のときは列とヘッダーを `--glass`（半透明）にする。写真は iPhone の Safari でも固定表示されるよう、`background-attachment: fixed` ではなく固定配置の `.bg` 要素に敷いている。写真は利用が許可されたものだけを使い、必要なら `credit` を表記する。
 
 ## 規約
 

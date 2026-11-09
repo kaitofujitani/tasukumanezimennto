@@ -8,11 +8,13 @@
   :root {
     --bg: #f6f7f9; --column: #eceef1; --card: #fff; --text: #1d2129; --muted: #6b7280;
     --border: #e3e5e8; --accent: #2563eb; --danger: #dc2626;
+    --glass: rgb(236 238 241 / .82); /* 背景写真の上に置く半透明の板 */
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #15171a; --column: #1b1e22; --card: #24282d; --text: #e8eaed; --muted: #9aa0a6;
       --border: #2e3237; --accent: #60a5fa; --danger: #f87171;
+      --glass: rgb(27 30 34 / .82);
     }
   }
   * { box-sizing: border-box; }
@@ -24,6 +26,19 @@
   header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
   h1 { font-size: 1.5rem; margin: 0; }
   .toolbar { display: flex; gap: 6px; }
+
+  /* 背景写真（O3）。写真を読み込めたときだけ body に has-bg を付け、列とヘッダーを半透明の板にする。
+     iPhone の Safari は background-attachment: fixed が効かないので、固定配置の div に写真を敷く */
+  .bg { position: fixed; inset: 0; z-index: -1; background: center / cover no-repeat; opacity: 0; transition: opacity .6s; }
+  body.has-bg .bg { opacity: 1; }
+  body.has-bg .column,
+  body.has-bg header { background: var(--glass); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  body.has-bg header { border-radius: 10px; padding: 10px 12px; }
+  .credit {
+    position: fixed; right: 8px; bottom: 6px; font-size: .7rem;
+    color: #fff; text-shadow: 0 1px 2px rgb(0 0 0 / .8); text-decoration: none;
+  }
+  .credit[href]:hover { text-decoration: underline; }
 
   .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: start; }
   @media (max-width: 720px) { .board { grid-template-columns: 1fr; } }
@@ -80,6 +95,8 @@
 </style>
 </head>
 <body>
+<div class="bg" id="bg"></div>
+<a class="credit" id="credit" target="_blank" rel="noopener"></a>
 <main>
   <header>
     <h1>ボード</h1>
@@ -333,6 +350,40 @@
     save(); render();
   };
 
+  // ---- 背景写真（O3） ----
+  // 写真は images/ フォルダに置き、ここに1行ずつ追加する。開くたびにランダムで1枚選ぶ。
+  // credit は画面右下に出す撮影者名・ライセンスの表記、url はクリックで開く出典ページ（どちらも不要なら ""）。
+  // ライセンスの詳細は images/CREDITS.md にまとめてある。写真を足したらそちらにも追記する。
+  // 空の配列なら背景写真なしで表示する。
+  const BACKGROUNDS = [
+    { src: "images/eiffel-tower.jpg", credit: "写真: Jorge Royan / CC BY-SA 3.0 / Wikimedia Commons",
+      url: "https://commons.wikimedia.org/wiki/File:Paris_-_The_Eiffel_Tower_in_spring_-_2307.jpg" },
+    { src: "images/colosseum.jpg", credit: "写真: Diliff / CC BY-SA 2.5 / Wikimedia Commons",
+      url: "https://commons.wikimedia.org/wiki/File:Colosseum_in_Rome-April_2007-1-_copie_2B.jpg" },
+    { src: "images/machu-picchu.jpg", credit: "写真: Diego Delso / CC BY-SA 4.0 / Wikimedia Commons",
+      url: "https://commons.wikimedia.org/wiki/File:Machu_Picchu,_Per%C3%BA,_2015-07-30,_DD_60.JPG" },
+    { src: "images/neuschwanstein.jpg", credit: "写真: Wilfredor / CC0 / Wikimedia Commons",
+      url: "https://commons.wikimedia.org/wiki/File:Neuschwanstein_Castle_2024.jpg" },
+    { src: "images/golden-gate-bridge.jpg", credit: "写真: Frank Schulenburg / CC BY-SA 4.0 / Wikimedia Commons",
+      url: "https://commons.wikimedia.org/wiki/File:Golden_Gate_Bridge_as_seen_from_Marshall%E2%80%99s_Beach,_March_2018.jpg" },
+    { src: "images/santorini-oia.jpg", credit: "写真: Giles Laurent / CC BY-SA 4.0 / Wikimedia Commons",
+      url: "https://commons.wikimedia.org/wiki/File:1000_Three_domes_of_Oia_in_Santorini_Photo_by_Giles_Laurent.jpg" },
+  ];
+
+  function setBackground() {
+    if (!BACKGROUNDS.length) return;
+    const pick = BACKGROUNDS[Math.floor(Math.random() * BACKGROUNDS.length)];
+    // 読み込めたときだけ表示を切り替える（ファイル名の間違いなどで読めなければ、写真なしのまま）
+    const img = new Image();
+    img.onload = () => {
+      $("#bg").style.backgroundImage = `url("${pick.src}")`;
+      $("#credit").textContent = pick.credit || "";
+      if (pick.url) $("#credit").href = pick.url;
+      document.body.classList.add("has-bg");
+    };
+    img.src = pick.src;
+  }
+
   // ---- カード詳細画面 ----
   // 入力はその場で cards に反映して保存する（「保存」ボタンはない）
   const detail = $("#detail");
@@ -404,6 +455,7 @@
   detail.onclick = (e) => { if (e.target === detail) detail.close(); };
   detail.onclose = () => { editing = null; };
 
+  setBackground();
   render();
 </script>
 </body>
