@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ブラウザだけで動く、Trello 風のカンバン式タスク管理アプリ（固定3列・ドラッグ＆ドロップで移動）。HTML・CSS・JavaScript はすべて [index.html](index.html) にインラインで書かれている。ビルド・パッケージマネージャ・依存ライブラリ・テスト・リンターは存在しない。
 
-要件は [docs/requirements.md](docs/requirements.md) にまとめてある。機能を足すときは、まずこの要件定義書と食い違わないかを確認する。
+要件は [docs/requirements.md](docs/requirements.md) に概要をまとめ、機能・画面・データベース・API・技術の詳細は docs/ 内の別の資料に分けてある（一覧は [docs/README.md](docs/README.md)）。機能を足すときは、まず要件定義書と関係する資料に食い違わないかを確認し、変更したら該当する資料も更新する。
+
+なお、資料はサーバーと PostgreSQL を使う版を前提に書いている。下の「アーキテクチャ」は、まだ移行前の今の実装（localStorage に保存する版）の説明。
 
 ## 実行・公開
 
