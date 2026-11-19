@@ -11,41 +11,82 @@
 
 ```mermaid
 flowchart LR
-  B[ブラウザ<br>画面の HTML/CSS/JS] -- "HTTPS<br>JSON" --> S[Web サーバー<br>Node.js + Express]
-  S -- SQL --> D[(PostgreSQL)]
+  B[ブラウザ<br>React の画面] -- "HTTPS<br>JSON" --> S[Web サーバー<br>Java + Spring Boot]
+  S -- "SQL（JPA）" --> D[(PostgreSQL)]
 ```
 
-- Web サーバーは、画面のファイル（HTML・画像など）の配信と、データを読み書きする API の2つの役割を持つ
+- Web サーバー（Spring Boot）は、画面のファイル（React をビルドした HTML・JavaScript・画像など）の配信と、データを読み書きする API の2つの役割を持つ
 - 画面と API を同じサーバーから配信するので、URL がそろい、別サイト間の通信の設定（CORS）がいらない
-- データはすべてデータベースに保存する。ブラウザにはタスクのデータを保存しない
+- データとログイン状態はすべてデータベースに保存する。ブラウザにはタスクのデータを保存しない
 
-### 1.2 フォルダ構成
+### 1.2 サーバーの中の分担
+
+```mermaid
+flowchart LR
+  C[Controller<br>API の受け口・入力のチェック] --> SV[Service<br>処理の中身・トランザクション]
+  SV --> R[Repository<br>データベースの読み書き]
+  R --> D[(PostgreSQL)]
+```
+
+- **Controller**：URL ごとに API を受け、送られた内容を確かめて Service を呼ぶ
+- **Service**：並び順の振り直しなど処理の中身を書く。複数の行を書き換える処理はトランザクションで行う
+- **Repository**：Spring Data JPA でデータベースを読み書きする
+
+### 1.3 フォルダ構成
 
 ```text
 /
-├── public/              画面のファイル（そのまま配信する）
-│   ├── index.html       画面（HTML・CSS・JavaScript）
-│   └── images/          背景写真
-├── server/
-│   ├── app.js           Web サーバーの起動と API の定義
-│   ├── db.js            データベースへの接続と SQL の実行
-│   └── auth.js          ログインとログイン状態の確認
-├── db/
-│   └── schema.sql       テーブルの作成と初期データ（列3つ）
-├── docs/                設計資料
-└── package.json         使うライブラリ（express、pg）と起動コマンド
+├── frontend/                          画面（React + TypeScript）
+│   ├── src/
+│   │   ├── main.tsx                   画面の起点
+│   │   ├── App.tsx                    ログイン画面とボード画面の切り替え
+│   │   ├── api.ts                     API を呼ぶ処理
+│   │   ├── types.ts                   API でやりとりするデータの型
+│   │   ├── components/                画面の部品（LoginPage・Board・Column・TaskCard・TaskDetail）
+│   │   └── styles.css
+│   ├── public/images/                 背景写真
+│   ├── package.json                   使うライブラリと、開発・ビルドのコマンド
+│   └── vite.config.ts                 開発中は /api を Spring Boot に転送する設定
+├── backend/                           サーバー（Java + Spring Boot）
+│   ├── src/main/java/com/example/taskboard/
+│   │   ├── TaskboardApplication.java  サーバーの起点
+│   │   ├── controller/                AuthController・BoardController・TaskController
+│   │   ├── service/                   TaskService（登録・移動・並べ替え）
+│   │   ├── repository/                BoardColumnRepository・TaskRepository
+│   │   ├── entity/                    BoardColumn・Task（テーブルに対応するクラス）
+│   │   ├── dto/                       API で受け取る内容・返す内容の形
+│   │   └── config/SecurityConfig.java ログインの設定
+│   ├── src/main/resources/
+│   │   ├── application.properties     設定（環境変数を読み込む）
+│   │   └── db/migration/
+│   │       └── V1__create_tables.sql  テーブルの作成と初期データ（列3つ）
+│   ├── src/test/java/                 テスト
+│   └── build.gradle                   使うライブラリとビルドの設定
+├── Dockerfile                         画面をビルドしてサーバーに入れ、1つのアプリにまとめる
+└── docs/                              設計資料
 ```
 
-### 1.3 環境変数
+- 列を表すクラスは `BoardColumn` とする（JPA の `@Column` 注釈と名前が重ならないようにするため）。テーブル名は `columns` のまま
+
+### 1.4 開発と公開の流れ
+
+| 場面 | 動かし方 |
+|---|---|
+| 開発 | `backend` で `./gradlew bootRun`（ポート 8080）、`frontend` で `npm run dev`（Vite）。画面からの `/api` は Vite が 8080 に転送するので、本番と同じ URL のまま開発できる |
+| 公開 | `Dockerfile` が ① `frontend` をビルド ② できたファイルを Spring Boot の `static` に入れる ③ `backend` をビルド ④ 1つの jar ファイルで起動、の順に行う。GitHub の `main` に push すると Render が自動でこの手順を実行する |
+
+### 1.5 環境変数
 
 パスワードや接続情報は、コードや GitHub に置かず、Render の環境変数に設定する。
 
 | 名前 | 内容 |
 |---|---|
-| `DATABASE_URL` | Neon のデータベースに接続するための URL |
+| `DB_URL` | Neon のデータベースに接続するための URL（`jdbc:postgresql://…?sslmode=require` の形）。未設定なら開発用 DB（`compose.yaml`）につなぐ |
+| `DB_USERNAME` | データベースのユーザー名 |
+| `DB_PASSWORD` | データベースのパスワード |
 | `APP_PASSWORD` | ログインのパスワード |
-| `SESSION_SECRET` | ログイン状態の Cookie に署名するための秘密の文字列（長いランダムな文字列） |
-| `PORT` | サーバーが待ち受ける番号（Render が自動で設定する） |
+| `PORT` | サーバーが待ち受ける番号（Render が自動で設定する。`application.properties` で `server.port` に渡す） |
+| `JAVA_TOOL_OPTIONS` | Java が使うメモリの上限（例：`-XX:MaxRAMPercentage=75`）。無料プランのメモリが少ないため |
 
 ---
 
@@ -55,7 +96,9 @@ flowchart LR
 - データのやりとりは JSON。項目名は画面側の JavaScript に合わせてキャメルケース（`columnId`）にし、データベースの列名（`column_id`）との変換はサーバーで行う
 - ログイン（`/api/login`）以外の API は、ログインしていないと `401` を返す
 - 送られた内容は、[画面設計書](screens.md#3-入力のルール) の入力のルールでサーバーでも確かめる
-- SQL には、送られた値を直接埋め込まず、プレースホルダー（`$1` など）で渡す（SQL インジェクション対策）
+- 送られた内容は、項目に付けた Bean Validation の注釈（`@NotBlank` など）で確かめ、違反なら `400` を返す
+- SQL には、送られた値を直接埋め込まない。Spring Data JPA が値をプレースホルダーとして渡す（SQL インジェクション対策）
+- ログイン（`/api/login`）以外の `POST`・`PATCH`・`DELETE` では、CSRF 対策のトークンをヘッダーに付けて送る（5章）
 - エラーのときは、次の形で理由を返す
 
 ```json
@@ -69,6 +112,7 @@ flowchart LR
 | `204` | 成功（返す内容はない） |
 | `400` | 送られた内容が正しくない（入力のルール違反など） |
 | `401` | ログインしていない、またはパスワードが違う |
+| `403` | CSRF 対策のトークンがない、または正しくない |
 | `404` | 指定したタスクがない |
 | `500` | サーバーやデータベースのエラー |
 
@@ -98,12 +142,12 @@ flowchart LR
 { "password": "入力したパスワード" }
 ```
 
-- 正しければ `204`。ログイン状態の Cookie を返す
+- 正しければ `204`。ログイン状態の Cookie（`SESSION`）と、CSRF 対策のトークンの Cookie（`XSRF-TOKEN`）を返す
 - 違えば `401`
 
 ### A2 ログアウトする `POST /api/logout`
 
-- ログイン状態の Cookie を消して `204`
+- データベースのログイン状態を消し、Cookie も消して `204`
 
 ### A3 ボードを取得する `GET /api/board`
 
@@ -185,23 +229,40 @@ flowchart LR
 | `due` | 期限順（期限なしは最後。同じ期限なら優先度が高い順） |
 | `created` | 登録順 |
 
-- 各列の中で並べ替え、`position` を振り直して保存する（SQL の `ORDER BY` で並べる）
+- 各列の中で並べ替え、`position` を振り直して保存する（並べ替えの条件はリポジトリのメソッドの `ORDER BY` で指定する）
 - 成功したら `200` と、A3 と同じ形でボード全体を返す
 
 ---
 
 ## 5. ログインの仕組み
 
-- パスワードは1つだけで、環境変数 `APP_PASSWORD` と比べる。比べるときは、かかる時間で中身を推測されない方法（`crypto.timingSafeEqual`）を使う
-- 正しければ、有効期限（30日後）に `SESSION_SECRET` で署名を付けた値を Cookie に入れて返す。サーバーは Cookie の署名と期限を確かめるだけなので、ログイン状態をデータベースに保存しなくてよい（サーバーが再起動してもログインは切れない）
-- Cookie の設定
+Spring Security と Spring Session JDBC を使う。
+
+```mermaid
+sequenceDiagram
+  participant B as ブラウザ
+  participant S as サーバー
+  participant D as データベース
+  B->>S: POST /api/login（パスワード）
+  S->>S: APP_PASSWORD と比べる
+  S->>D: ログイン状態を保存
+  S-->>B: 204 ＋ Cookie（SESSION・XSRF-TOKEN）
+  B->>S: GET /api/board（Cookie が自動で付く）
+  S->>D: ログイン状態を確かめる
+  S-->>B: 200 ＋ ボード
+```
+
+- パスワードは1つだけで、環境変数 `APP_PASSWORD` と比べる。比べるときは、かかる時間で中身を推測されない方法（`MessageDigest.isEqual`）を使う
+- 正しければ、Spring Security の「ログイン済み」の状態を作り、Spring Session JDBC がデータベースに保存する。ブラウザには、それを指す番号だけを Cookie（`SESSION`）で渡す。データベースに保存するので、サーバーが休止・再起動してもログインは切れない
+- ログイン状態の Cookie の設定
 
 | 設定 | 値 | 理由 |
 |---|---|---|
 | `HttpOnly` | あり | 画面の JavaScript から読めないようにする |
 | `Secure` | あり | HTTPS のときだけ送る |
 | `SameSite` | `Lax` | 他のサイトから API を呼ばれても Cookie を送らない |
-| `Max-Age` | 30日 | [機能仕様書](features.md) の F1 |
+| `Max-Age` | 30日 | [機能仕様書](features.md) の F1。データベースのログイン状態の有効期限も30日にする |
 
+- CSRF（他のサイトから勝手に操作させる攻撃）対策として、Spring Security の CSRF 対策を有効にする。トークンは Cookie（`XSRF-TOKEN`、画面から読める）で渡し、画面は `POST`・`PATCH`・`DELETE` のときにその値をヘッダー `X-XSRF-TOKEN` に付けて送る
 - パスワードを何度も試されるのを防ぐため、ログインに失敗したら 1 秒待ってから返す
-- `APP_PASSWORD` を変えても、すでに配った Cookie は期限まで使える。すべての端末をログアウトさせたいときは `SESSION_SECRET` を変える
+- `APP_PASSWORD` を変えても、すでにログインしている端末はそのまま使える。すべての端末をログアウトさせたいときは、データベースのログイン状態のテーブル（`spring_session`）の行を削除する

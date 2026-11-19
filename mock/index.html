@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ボード（画面モック）</title>
+<!--
+  画面設計書（docs/screens.md）の認識合わせ用モック。
+  サーバーやデータベースにはつながず、データはこのページの中だけで持つ（再読み込みで初期状態に戻る）。
+  エラー表示などは、左下の「モックの操作」から再現する。
+-->
+<style>
+  :root {
+    --bg: #f6f7f9; --column: #eceef1; --card: #fff; --text: #1d2129; --muted: #6b7280;
+    --border: #e3e5e8; --accent: #2563eb; --danger: #dc2626;
+    --glass: rgb(236 238 241 / .82); /* 背景写真の上に置く半透明の板 */
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15171a; --column: #1b1e22; --card: #24282d; --text: #e8eaed; --muted: #9aa0a6;
+      --border: #2e3237; --accent: #60a5fa; --danger: #f87171;
+      --glass: rgb(27 30 34 / .82);
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  }
+  /* 下の余白は、左下に固定した「モックの操作」パネルに最後の入力欄が隠れないようにするため */
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 16px 72px; }
+  header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+  h1 { font-size: 1.5rem; margin: 0; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  /* 背景写真。読み込めたときだけ body に has-bg を付け、列とヘッダーを半透明の板にする */
+  .bg { position: fixed; inset: 0; z-index: -1; background: center / cover no-repeat; opacity: 0; transition: opacity .6s; }
+  body.has-bg .bg { opacity: 1; }
+  body.has-bg .column,
+  body.has-bg header,
+  body.has-bg .login-card,
+  body.has-bg .status { background: var(--glass); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  body.has-bg header { border-radius: 10px; padding: 10px 12px; }
+  .credit {
+    position: fixed; right: 8px; bottom: 6px; font-size: .7rem;
+    color: #fff; text-shadow: 0 1px 2px rgb(0 0 0 / .8); text-decoration: none;
+  }
+  .credit[href]:hover { text-decoration: underline; }
+
+  /* S0 ログイン画面 */
+  #login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+  .login-card {
+    width: min(360px, 100%); display: grid; gap: 12px;
+    background: var(--column); border-radius: 12px; padding: 24px;
+  }
+  .login-card label { display: grid; gap: 4px; font-size: .85rem; color: var(--muted); }
+  .login-card label > input { color: var(--text); }
+  .login-card .primary { justify-self: end; }
+  .login-error { margin: 0; color: var(--danger); font-size: .9rem; }
+
+  /* エラーの帯（画面の上部に出す） */
+  .banner {
+    position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 10;
+    width: max-content; max-width: calc(100vw - 32px);
+    display: flex; align-items: center; gap: 12px;
+    background: var(--danger); color: #fff; padding: 10px 16px; border-radius: 8px;
+    box-shadow: 0 4px 12px rgb(0 0 0 / .25);
+  }
+  .banner button { background: #fff; color: #b91c1c; border: none; font-weight: 600; padding: 4px 10px; }
+
+  /* 読み込み中・読み込み失敗のお知らせ */
+  .status {
+    background: var(--column); border-radius: 10px; padding: 32px 16px;
+    text-align: center; color: var(--muted); margin: 0;
+  }
+
+  /* S1 ボード画面 */
+  .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 720px) { .board { grid-template-columns: 1fr; } }
+  .column {
+    background: var(--column); border: 2px solid transparent;
+    border-radius: 10px; padding: 12px;
+  }
+  .column.over { border-color: var(--accent); }
+  .column h2 { font-size: 1rem; margin: 0 0 10px; display: flex; justify-content: space-between; }
+  .column h2 .count { color: var(--muted); font-weight: normal; }
+  .cards { list-style: none; padding: 0; margin: 0; min-height: 8px; }
+  .card {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; margin-bottom: 8px; cursor: grab;
+  }
+  .card.dragging { opacity: .4; }
+  .card .body { flex: 1; min-width: 0; }
+  .card .title { word-break: break-word; }
+  .card .meta { display: flex; gap: 10px; margin-top: 4px; font-size: .8rem; color: var(--muted); }
+  .del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 2px 6px; }
+  .del:hover { color: var(--danger); }
+  .placeholder { height: 4px; border-radius: 2px; background: var(--accent); margin: 0 0 8px; }
+  .column form { display: flex; gap: 6px; margin-top: 4px; }
+  input, select, textarea, button {
+    font: inherit; color: inherit; background: var(--card);
+    border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;
+  }
+  .column form input { flex: 1; min-width: 0; }
+  button { cursor: pointer; }
+  button:disabled { opacity: .4; cursor: default; }
+  button.primary { background: var(--accent); color: #fff; border: none; font-weight: 600; }
+  button.danger { color: var(--danger); border-color: var(--danger); background: none; }
+
+  /* S2 タスク詳細画面。余白は form 側に持たせ、dialog 自体のクリック＝背景のクリックとして扱う */
+  dialog {
+    width: min(480px, calc(100vw - 32px)); padding: 0;
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 12px;
+  }
+  dialog::backdrop { background: rgb(0 0 0 / .4); }
+  #detail-form { display: grid; gap: 12px; padding: 20px; }
+  #detail-form h2 { font-size: 1.1rem; margin: 0; }
+  #detail-form label { display: grid; gap: 4px; font-size: .85rem; color: var(--muted); }
+  #detail-form label > * { color: var(--text); }
+  #detail-form textarea { resize: vertical; }
+  #detail-form .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
+  #detail-form .order { display: flex; gap: 6px; }
+  #detail-form .order button { flex: 1; }
+  #detail-form .actions { display: flex; justify-content: space-between; margin-top: 4px; }
+
+  /* モック専用の操作パネル（本番の画面にはない） */
+  .mock-panel {
+    position: fixed; left: 8px; bottom: 8px; z-index: 5; width: 220px; max-width: calc(100vw - 16px);
+    background: var(--card); border: 1px dashed var(--muted); border-radius: 8px;
+    padding: 6px 10px; font-size: .8rem;
+  }
+  .mock-panel summary { cursor: pointer; color: var(--muted); }
+  .mock-panel p { margin: 6px 0; color: var(--muted); }
+  .mock-panel button { display: block; width: 100%; margin-top: 4px; padding: 4px 8px; font-size: .8rem; text-align: left; }
+</style>
+</head>
+<body>
+<div class="bg" id="bg"></div>
+<a class="credit" id="credit" target="_blank" rel="noopener"></a>
+<div class="banner" id="banner" role="alert" hidden>
+  <span id="banner-text"></span>
+  <button type="button" id="banner-retry" hidden>再読み込み</button>
+</div>
+
+<!-- S0 ログイン画面 -->
+<section id="login">
+  <form id="login-form" class="login-card">
+    <h1>ボード</h1>
+    <label>パスワード<input type="password" id="password" autocomplete="current-password"></label>
+    <button class="primary" id="login-btn" disabled>ログイン</button>
+    <p class="login-error" id="login-error" hidden>パスワードが違います</p>
+  </form>
+</section>
+
+<!-- S1 ボード画面 -->
+<main id="app" hidden>
+  <header>
+    <h1>ボード</h1>
+    <div class="toolbar">
+      <select id="sort" aria-label="並べ方">
+        <option value="priority">優先度順</option>
+        <option value="due">期限順</option>
+        <option value="created">登録順</option>
+      </select>
+      <button type="button" id="sort-btn">並べ替え</button>
+      <button type="button" id="logout">ログアウト</button>
+    </div>
+  </header>
+  <p class="status" id="status" hidden></p>
+  <div class="board" id="board"></div>
+</main>
+
+<!-- S2 タスク詳細画面 -->
+<dialog id="detail" aria-labelledby="detail-heading">
+  <form id="detail-form" method="dialog">
+    <h2 id="detail-heading">カードの詳細</h2>
+    <label>タイトル<input name="title" required autocomplete="off"></label>
+    <label>説明<textarea name="description" rows="4"></textarea></label>
+    <div class="row">
+      <label>優先度
+        <select name="priority">
+          <option value="high">高</option>
+          <option value="mid">中</option>
+          <option value="low">低</option>
+        </select>
+      </label>
+      <label>期限<input name="due" type="date"></label>
+    </div>
+    <div class="row">
+      <label>列<select name="column"></select></label>
+      <div class="order">
+        <button type="button" id="up">上へ</button>
+        <button type="button" id="down">下へ</button>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" id="delete" class="danger">削除</button>
+      <button class="primary">閉じる</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- モック専用の操作パネル -->
+<aside class="mock-panel">
+  <details>
+    <summary>モックの操作</summary>
+    <p>これは画面確認用のモックです。データは保存されず、再読み込みで元に戻ります。</p>
+    <p>パスワード：<strong>demo</strong></p>
+    <button type="button" data-demo="starting">サーバーの起動待ちを再現</button>
+    <button type="button" data-demo="save-error">保存の失敗を再現</button>
+    <button type="button" data-demo="load-error">読み込みの失敗を再現</button>
+    <button type="button" data-demo="expired">ログインの期限切れを再現</button>
+    <button type="button" data-demo="reset">データを初期状態に戻す</button>
+  </details>
+</aside>
+
+<script>
+  const MOCK_PASSWORD = "demo";
+  // 列は固定。表示順もこの配列の順（データベースの columns 表にあたる）
+  const COLUMNS = [
+    { id: 1, name: "未着手" },
+    { id: 2, name: "進行中" },
+    { id: 3, name: "完了" },
+  ];
+  const PRIO = { high: 0, mid: 1, low: 2 }; // 並べ替え用（小さいほど優先度が高い）
+  const PRIO_LABEL = { high: "高", mid: "中", low: "低" };
+
+  const $ = (s) => document.querySelector(s);
+
+  // 今日から n 日後を "YYYY-MM-DD"（端末の時刻基準）で返す
+  function dayAfter(n) {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    const pad = (v) => String(v).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  // 画面確認用のサンプルデータ。列内の並び順は配列内の順序で表す
+  function sampleTasks() {
+    const t = Date.now();
+    return [
+      { id: "t1", columnId: 1, title: "見積書を作る", description: "A社向け。前回の金額を参考にする", priority: "high", due: dayAfter(2), createdAt: t - 6000 },
+      { id: "t2", columnId: 1, title: "打ち合わせの日程を決める", description: "", priority: "mid", due: dayAfter(5), createdAt: t - 5000 },
+      { id: "t3", columnId: 1, title: "本を図書館に返す", description: "", priority: "low", due: "", createdAt: t - 4000 },
+      { id: "t4", columnId: 2, title: "企画書の下書き", description: "目次まではできている", priority: "high", due: dayAfter(1), createdAt: t - 3000 },
+      { id: "t5", columnId: 3, title: "経費の精算", description: "", priority: "mid", due: "", createdAt: t - 2000 },
+    ];
+  }
+
+  let tasks = sampleTasks();
+  let draggingId = null;
+  let editing = null; // 詳細画面で開いているタスク
+
+  // ---- 画面の切り替え ----
+  function showLogin() {
+    if ($("#detail").open) $("#detail").close();
+    $("#app").hidden = true;
+    $("#login").hidden = false;
+    $("#password").value = "";
+    $("#login-btn").disabled = true;
+    $("#password").focus();
+  }
+
+  function showBoard() {
+    $("#login").hidden = true;
+    $("#login-error").hidden = true;
+    $("#app").hidden = false;
+    $("#status").hidden = true;
+    $("#board").hidden = false;
+    render();
+  }
+
+  // ---- S0 ログイン画面 ----
+  // パスワードが空のあいだはログインボタンを押せない
+  $("#password").oninput = () => { $("#login-btn").disabled = !$("#password").value; };
+  $("#login-form").onsubmit = (e) => {
+    e.preventDefault();
+    if ($("#password").value === MOCK_PASSWORD) {
+      showBoard();
+    } else {
+      $("#login-error").hidden = false;
+      $("#password").value = "";
+      $("#login-btn").disabled = true;
+      $("#password").focus();
+    }
+  };
+  $("#logout").onclick = showLogin;
+
+  // ---- エラーの帯 ----
+  let bannerTimer = null;
+  // retry が true のときは「再読み込み」ボタンを出し、自動では消さない
+  function showBanner(message, retry = false) {
+    clearTimeout(bannerTimer);
+    $("#banner-text").textContent = message;
+    $("#banner-retry").hidden = !retry;
+    $("#banner").hidden = false;
+    if (!retry) bannerTimer = setTimeout(() => { $("#banner").hidden = true; }, 5000);
+  }
+  $("#banner-retry").onclick = () => { $("#banner").hidden = true; showBoard(); };
+
+  // ---- S1 ボード画面 ----
+  function render() {
+    const board = $("#board");
+    board.innerHTML = "";
+
+    for (const col of COLUMNS) {
+      const items = tasks.filter(t => t.columnId === col.id);
+
+      const section = document.createElement("section");
+      section.className = "column";
+      section.dataset.column = col.id;
+
+      const h2 = document.createElement("h2");
+      const name = document.createElement("span");
+      name.textContent = col.name;
+      const count = document.createElement("span");
+      count.className = "count";
+      count.textContent = items.length;
+      h2.append(name, count);
+
+      const ul = document.createElement("ul");
+      ul.className = "cards";
+      for (const t of items) ul.append(cardEl(t));
+
+      const form = document.createElement("form");
+      const input = document.createElement("input");
+      input.placeholder = "カードを追加…";
+      input.autocomplete = "off";
+      input.setAttribute("aria-label", `${col.name}にカードを追加`);
+      const btn = document.createElement("button");
+      btn.className = "primary";
+      btn.textContent = "追加";
+      form.append(input, btn);
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        const title = input.value.trim();
+        if (!title) return; // 空のタイトルは何も登録しない（メッセージも出さない）
+        tasks.push({
+          id: crypto.randomUUID?.() || String(Date.now()),
+          columnId: col.id, title, description: "", priority: "mid", due: "", createdAt: Date.now(),
+        });
+        render();
+        // 続けて入力できるよう、同じ列の入力欄にフォーカスを戻す
+        document.querySelector(`[data-column="${col.id}"] input`).focus();
+      };
+
+      section.ondragover = (e) => onDragOver(e, ul);
+      section.ondragleave = (e) => {
+        if (!section.contains(e.relatedTarget)) clearPlaceholder();
+      };
+      section.ondrop = (e) => onDrop(e, col.id, ul);
+
+      section.append(h2, ul, form);
+      board.append(section);
+    }
+  }
+
+  function cardEl(t) {
+    const li = document.createElement("li");
+    li.className = "card";
+    li.draggable = true;
+    li.dataset.id = t.id;
+
+    const body = document.createElement("div");
+    body.className = "body";
+    const title = document.createElement("div");
+    title.className = "title";
+    title.textContent = t.title;
+
+    // 優先度と期限（期限は設定されているときだけ表示）
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const prio = document.createElement("span");
+    prio.textContent = `優先度: ${PRIO_LABEL[t.priority]}`;
+    meta.append(prio);
+    if (t.due) {
+      const due = document.createElement("span");
+      due.textContent = `期限: ${t.due.replaceAll("-", "/")}`;
+      meta.append(due);
+    }
+    body.append(title, meta);
+
+    const del = document.createElement("button");
+    del.className = "del";
+    del.textContent = "×";
+    del.setAttribute("aria-label", "削除");
+    del.onclick = (e) => {
+      e.stopPropagation(); // カードのクリック（詳細画面を開く）まで伝わらないようにする
+      tasks = tasks.filter(x => x !== t);
+      render();
+    };
+
+    // クリック、またはフォーカスして Enter で詳細画面を開く
+    li.tabIndex = 0;
+    li.onclick = () => openDetail(t);
+    li.onkeydown = (e) => { if (e.key === "Enter" && e.target === li) openDetail(t); };
+
+    li.ondragstart = (e) => {
+      draggingId = t.id;
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", t.id); // Firefox はデータがないとドラッグが始まらない
+      requestAnimationFrame(() => li.classList.add("dragging"));
+    };
+    li.ondragend = () => {
+      draggingId = null;
+      li.classList.remove("dragging");
+      clearPlaceholder();
+    };
+
+    li.append(body, del);
+    return li;
+  }
+
+  // マウス位置より下にある最初のカード（＝挿入先の直後のカード）を返す
+  function cardAfter(ul, y) {
+    const els = [...ul.querySelectorAll(".card:not(.dragging)")];
+    return els.find(el => {
+      const r = el.getBoundingClientRect();
+      return y < r.top + r.height / 2;
+    }) || null;
+  }
+
+  function clearPlaceholder() {
+    document.querySelectorAll(".placeholder").forEach(p => p.remove());
+    document.querySelectorAll(".column.over").forEach(s => s.classList.remove("over"));
+  }
+
+  function onDragOver(e, ul) {
+    if (!draggingId) return;
+    e.preventDefault(); // これがないと drop が発火しない
+    const section = ul.parentElement;
+    if (!section.classList.contains("over")) {
+      clearPlaceholder();
+      section.classList.add("over");
+    }
+    let ph = ul.querySelector(".placeholder");
+    if (!ph) {
+      ph = document.createElement("li");
+      ph.className = "placeholder";
+    }
+    const after = cardAfter(ul, e.clientY);
+    if (after) ul.insertBefore(ph, after); else ul.append(ph);
+  }
+
+  function onDrop(e, columnId, ul) {
+    if (!draggingId) return;
+    e.preventDefault();
+    const task = tasks.find(t => t.id === draggingId);
+    if (!task) return;
+    const after = cardAfter(ul, e.clientY);
+
+    tasks = tasks.filter(t => t !== task);
+    task.columnId = columnId;
+    if (after) {
+      tasks.splice(tasks.findIndex(t => t.id === after.dataset.id), 0, task);
+    } else {
+      tasks.push(task);
+    }
+    render();
+  }
+
+  // ---- 自動の並べ替え ----
+  const byPrio = (a, b) => PRIO[a.priority] - PRIO[b.priority];
+  const byDue = (a, b) => (a.due || "9999-99-99").localeCompare(b.due || "9999-99-99"); // 期限なしは最後
+  const COMPARE = {
+    priority: (a, b) => byPrio(a, b) || byDue(a, b),
+    due: (a, b) => byDue(a, b) || byPrio(a, b),
+    created: (a, b) => a.createdAt - b.createdAt,
+  };
+  $("#sort-btn").onclick = () => {
+    tasks.sort(COMPARE[$("#sort").value]);
+    render();
+  };
+
+  // ---- S2 タスク詳細画面 ----
+  const detail = $("#detail");
+  const f = $("#detail-form").elements;
+  for (const col of COLUMNS) f.column.add(new Option(col.name, col.id));
+
+  function openDetail(t) {
+    editing = t;
+    f.title.value = t.title;
+    f.description.value = t.description;
+    f.priority.value = t.priority;
+    f.due.value = t.due;
+    f.column.value = t.columnId;
+    updateOrderButtons();
+    detail.showModal();
+  }
+
+  // 同じ列の中での位置に応じて「上へ」「下へ」を押せるかどうかを切り替える
+  function updateOrderButtons() {
+    const same = tasks.filter(x => x.columnId === editing.columnId);
+    const i = same.indexOf(editing);
+    $("#up").disabled = i <= 0;
+    $("#down").disabled = i === same.length - 1;
+  }
+
+  // dir: -1 で上へ、1 で下へ。同じ列の隣のタスクと配列内の位置を入れ替える
+  function move(dir) {
+    const same = tasks.filter(x => x.columnId === editing.columnId);
+    const other = same[same.indexOf(editing) + dir];
+    if (!other) return;
+    const a = tasks.indexOf(editing), b = tasks.indexOf(other);
+    [tasks[a], tasks[b]] = [tasks[b], tasks[a]];
+    render(); updateOrderButtons();
+  }
+
+  // タイトルは必須。空のあいだは反映せず、入力欄から離れたら元の値へ戻す
+  f.title.oninput = () => {
+    const v = f.title.value.trim();
+    if (v) { editing.title = v; render(); }
+  };
+  f.title.onchange = () => { if (!f.title.value.trim()) f.title.value = editing.title; };
+  f.description.oninput = () => { editing.description = f.description.value; };
+  f.priority.onchange = () => { editing.priority = f.priority.value; render(); };
+  f.due.onchange = () => { editing.due = f.due.value; render(); };
+
+  // 列を変えたら移動先の列の一番下に入れる
+  f.column.onchange = () => {
+    tasks = tasks.filter(x => x !== editing);
+    editing.columnId = Number(f.column.value);
+    tasks.push(editing);
+    render(); updateOrderButtons();
+  };
+
+  $("#up").onclick = () => move(-1);
+  $("#down").onclick = () => move(1);
+
+  $("#delete").onclick = () => {
+    if (!confirm(`「${editing.title}」を削除しますか？`)) return;
+    tasks = tasks.filter(x => x !== editing);
+    render();
+    detail.close();
+  };
+
+  // 背景（dialog の外側）をクリックしたら閉じる。Esc キーでも閉じる（ブラウザ標準）
+  detail.onclick = (e) => { if (e.target === detail) detail.close(); };
+  detail.onclose = () => { editing = null; };
+
+  // ---- モックの操作（エラーなどの再現） ----
+  const DEMOS = {
+    // 読み込みが3秒を超えたときのお知らせ。モックでは4秒後に表示し終える
+    starting() {
+      if (!$("#login").hidden) return showBanner("先にログインしてください");
+      $("#board").hidden = true;
+      $("#status").textContent = "サーバーを起動しています。1〜2分ほどかかることがあります";
+      $("#status").hidden = false;
+      setTimeout(showBoard, 4000);
+    },
+    "save-error"() {
+      showBanner("保存できませんでした。通信状況を確認してください");
+    },
+    "load-error"() {
+      if (!$("#login").hidden) return showBanner("先にログインしてください");
+      $("#board").hidden = true;
+      $("#status").textContent = "読み込めませんでした";
+      $("#status").hidden = false;
+      showBanner("読み込めませんでした", true);
+    },
+    expired() {
+      showLogin();
+    },
+    reset() {
+      tasks = sampleTasks();
+      if (!$("#app").hidden) render();
+    },
+  };
+  document.querySelectorAll("[data-demo]").forEach(b => {
+    b.onclick = () => DEMOS[b.dataset.demo]();
+  });
+
+  // ---- 背景写真 ----
+  // 本番と同じ写真を使う。credit は右下の撮影者名・ライセンスの表記、url は出典ページ
+  const BACKGROUNDS = [
+    { src: "../images/eiffel-tower.jpg", credit: "写真: Jorge Royan / CC BY-SA 3.0 / Wikimedia Commons",
+      url: "https://commons.wikimedia.org/wiki/File:Paris_-_The_Eiffel_Tower_in_spring_-_2307.jpg" },
+    { src: "../images/colosseum.jpg", credit: "写真: Diliff / CC BY-SA 2.5 / Wikimedia Commons",
+      url: "https://commons.wikimedia.org/wiki/File:Colosseum_in_Rome-April_2007-1-_copie_2B.jpg" },
+    { src: "../images/machu-picchu.jpg", credit: "写真: Diego Delso / CC BY-SA 4.0 / Wikimedia Commons",
+      url: "https://commons.wikimedia.org/wiki/File:Machu_Picchu,_Per%C3%BA,_2015-07-30,_DD_60.JPG" },
+    { src: "../images/neuschwanstein.jpg", credit: "写真: Wilfredor / CC0 / Wikimedia Commons",
+      url: "https://commons.wikimedia.org/wiki/File:Neuschwanstein_Castle_2024.jpg" },
+    { src: "../images/golden-gate-bridge.jpg", credit: "写真: Frank Schulenburg / CC BY-SA 4.0 / Wikimedia Commons",
+      url: "https://commons.wikimedia.org/wiki/File:Golden_Gate_Bridge_as_seen_from_Marshall%E2%80%99s_Beach,_March_2018.jpg" },
+    { src: "../images/santorini-oia.jpg", credit: "写真: Giles Laurent / CC BY-SA 4.0 / Wikimedia Commons",
+      url: "https://commons.wikimedia.org/wiki/File:1000_Three_domes_of_Oia_in_Santorini_Photo_by_Giles_Laurent.jpg" },
+  ];
+
+  function setBackground() {
+    const pick = BACKGROUNDS[Math.floor(Math.random() * BACKGROUNDS.length)];
+    // 読み込めたときだけ表示を切り替える（読めなければ、写真なしのまま）
+    const img = new Image();
+    img.onload = () => {
+      $("#bg").style.backgroundImage = `url("${pick.src}")`;
+      $("#credit").textContent = pick.credit;
+      $("#credit").href = pick.url;
+      document.body.classList.add("has-bg");
+    };
+    img.src = pick.src;
+  }
+
+  setBackground();
+  showLogin();
+</script>
+</body>
+</html>
