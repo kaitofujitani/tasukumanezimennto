@@ -33,6 +33,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **テーマ**: 色は `:root` の CSS 変数で定義し、`prefers-color-scheme: dark` で上書きしている。新しい色はこの変数に追加する。
 - **背景写真**: 写真は `images/` に置き、`BACKGROUNDS` 配列（`{ src, credit, url }`）に登録する。`credit` は右下の `#credit` リンクの文言、`url` はそのリンク先（出典ページ）。現在の写真はすべて Wikimedia Commons のもので、ライセンスの詳細は [images/CREDITS.md](images/CREDITS.md) にある。写真を追加・削除したら `BACKGROUNDS` と CREDITS.md の両方を更新する。1枚 500KB 以下を目安に縮小・圧縮して置く。`setBackground()` が開くたびにランダムで1枚選び、読み込めたときだけ `body` に `has-bg` を付ける。`has-bg` のときは列とヘッダーを `--glass`（半透明）にする。写真は iPhone の Safari でも固定表示されるよう、`background-attachment: fixed` ではなく固定配置の `.bg` 要素に敷いている。写真は利用が許可されたものだけを使い、必要なら `credit` を表記する。
 
+## Git 運用ルール（厳守）
+
+作業は必ず「Issue → ブランチ → PR → マージ」の順で進める。例外は作らない。
+
+1. **Issue を先に作る**: コードや資料を変える前に `gh issue create` で Issue を登録する（テンプレートは `.github/ISSUE_TEMPLATE/task.md`：背景・やること・完了条件）。既存の Issue があればそれを使う。ラベルは `enhancement`（機能追加）/ `bug`（不具合）/ `documentation`（資料）から選ぶ。
+2. **ブランチを切る**: 最新の `main` から `種類/issue番号-説明` の名前で作る。説明は英小文字とハイフンで短く。
+   - 種類: `feature`（機能追加）/ `fix`（不具合修正）/ `docs`（資料のみ）/ `refactor`（動作を変えない整理）/ `chore`（設定・雑務）
+   - 例: `feature/12-add-login`、`fix/15-drag-drop-order`、`docs/20-update-db-design`
+   - 1 ブランチ = 1 Issue。関係ない変更を混ぜない。
+3. **コミット**: 作業ブランチ上でのみ行う。メッセージは日本語で、変更内容がわかる一行目にする。
+4. **PR を作る**: ブランチを push し `gh pr create` で PR を作る（テンプレートは `.github/pull_request_template.md`）。本文に `Closes #issue番号` を入れ、マージ時に Issue が自動で閉じるようにする。
+5. **マージ**: ユーザーの確認を得てから行う。マージ後は作業ブランチを削除する。
+
+`main` への直接 commit / push は禁止。GitHub の Ruleset（`protect-main`）で PR 必須・強制 push 禁止・ブランチ削除禁止にしてあり、Claude Code でも `.claude/hooks/guard-main.sh` が main 上の `git commit` と main への `git push` を止める。GitHub Pages は `main` から公開しているため、PR がマージされた時点で反映される。
+
 ## 規約
 
 - UI の文言は日本語、識別子は英語。
