@@ -59,7 +59,8 @@ flowchart LR
 │   ├── src/main/resources/
 │   │   ├── application.properties     設定（環境変数を読み込む）
 │   │   └── db/migration/
-│   │       └── V1__create_tables.sql  テーブルの作成と初期データ（列3つ）
+│   │       ├── V1__create_tables.sql  テーブルの作成と初期データ（列3つ）
+│   │       └── V2__create_session_tables.sql  ログイン状態のテーブル（Spring Session の SQL を写したもの）
 │   ├── src/test/java/                 テスト
 │   └── build.gradle                   使うライブラリとビルドの設定
 ├── Dockerfile                         画面をビルドしてサーバーに入れ、1つのアプリにまとめる

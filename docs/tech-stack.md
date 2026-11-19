@@ -51,7 +51,7 @@ flowchart LR
 | 言語 | Java（動作確認時点の LTS 版） | ご指定。LTS 版（長期サポート版）は、安全のための更新が長く提供される |
 | フレームワーク | Spring Boot（動作確認時点の最新の安定版） | ご指定。Java の Web アプリで最も広く使われている |
 | ビルドツール | Gradle | Spring Boot の公式のひな形（Spring Initializr）で標準の選択肢。ライブラリの管理とビルド・テストの実行をまとめて行える |
-| API の作成 | Spring Web | Spring Boot の標準の部品で、JSON の API を作れる |
+| API の作成 | Spring Web MVC（spring-boot-starter-webmvc） | Spring Boot の標準の部品で、JSON の API を作れる |
 | データベースへの接続 | Spring Data JPA ＋ PostgreSQL の JDBC ドライバー | Spring Boot で最も広く使われている方法。簡単な読み書きは SQL を書かずにでき、送られた値は自動でプレースホルダーとして渡されるので、SQL インジェクションを防げる |
 | テーブルの作成・変更 | Flyway | テーブルを作る SQL をファイルとして残し、サーバーの起動時に自動で適用する。変更の履歴も番号付きのファイルで残るので、どのような形でデータを保存しているかがだれにでも分かる |
 | 入力のチェック | Bean Validation（spring-boot-starter-validation） | 「タイトルは空にできない」などのルールを、項目に注釈を付けるだけで書ける |

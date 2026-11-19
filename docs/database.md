@@ -73,7 +73,8 @@ erDiagram
 - **列は表にする**：タスクとの1対多の関係をデータベースで表し、存在しない列にタスクが入らないよう外部キーで守る
 - **タスクが入っている列は削除できない**：外部キーの初期設定の動きのまま（列の削除自体が今回は対象外）
 - **テーブルの作成は SQL ファイルで管理する**：Flyway を使い、`backend/src/main/resources/db/migration/V1__create_tables.sql` にテーブルの作成と初期データを書く。サーバーの起動時に自動で適用され、同じ手順で作り直せる。テーブルを変えるときは、元のファイルを書き換えずに `V2__…sql` のように番号を増やしたファイルを足す
-- **ログイン状態のテーブルは ER図に含めない**：ログイン状態は Spring Session JDBC がデータベースに保存する（`spring_session`・`spring_session_attributes`）。テーブルの形は Spring Session が用意する SQL をそのまま使い、タスクのデータとは関係しないので、ER図とテーブル定義には書かない。Flyway が適用済みのファイルを記録するテーブル（`flyway_schema_history`）も同じ扱い
+- **ログイン状態のテーブルは ER図に含めない**：ログイン状態は Spring Session JDBC がデータベースに保存する（`spring_session`・`spring_session_attributes`）。タスクのデータとは関係しないので、ER図とテーブル定義には書かない。Flyway が適用済みのファイルを記録するテーブル（`flyway_schema_history`）も同じ扱い
+- **ログイン状態のテーブルも Flyway で作る**：Spring Session は、PostgreSQL のような組み込みでないデータベースにはテーブルを自動で作らない。そこで、Spring Session の jar に入っている PostgreSQL 用の SQL（`org/springframework/session/jdbc/schema-postgresql.sql`）の中身を、そのまま `V2__create_session_tables.sql` に写して Flyway で適用する。Spring Session に自動で作らせる設定（`spring.session.jdbc.initialize-schema`）は `never` にする。こうすると、テーブルの作成がすべて Flyway の番号付きファイルにそろい、本番と開発で同じ手順になる。Spring Session を更新してテーブルの形が変わったときは、新しい番号のファイルを足して対応する
 
 ---
 
@@ -168,4 +169,4 @@ stateDiagram-v2
 | `created`（ミリ秒） | `tasks.created_at` |
 | 配列の中の順番 | `tasks.position` |
 
-今の版のデータをデータベースに移すかどうかは未定。
+今の版のデータをデータベースに移すかどうかは未定（[要件定義書](requirements.md) の「13. 未決事項」の Q5）。
