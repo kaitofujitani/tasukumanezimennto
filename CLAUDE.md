@@ -15,6 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `open index.html` でブラウザで直接開く（サーバー不要）
 - ローカルサーバーが必要な場合: `python3 -m http.server` → http://localhost:8000
 - 動作確認は手動でブラウザ上で行う（自動テストなし）
+- バックエンド（移行中・`backend/`）: `cd backend && docker compose up -d` で開発用 PostgreSQL を起動し、`./gradlew bootRun` → http://localhost:8080 。起動時に Flyway が `src/main/resources/db/migration/` の SQL を適用する。接続先は環境変数 `DB_URL` / `DB_USERNAME` / `DB_PASSWORD` で上書きでき、未設定なら `compose.yaml` の開発用 DB につなぐ
 - GitHub Pages で `main` ブランチのルートを公開している: https://kaitofujitani.github.io/tasukumanezimennto/ 。`main` に push すると数分で反映される。
 
 ## アーキテクチャ
