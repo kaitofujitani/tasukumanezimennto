@@ -8,7 +8,7 @@ branch=$(git -C "${CLAUDE_PROJECT_DIR:-.}" branch --show-current 2>/dev/null)
 
 if echo "$cmd" | grep -Eq '(^|[;&|[:space:]])git[[:space:]]+commit'; then
   if [ "$branch" = "main" ]; then
-    echo "main ブランチ上では commit できません。Issue を作り、'種類/issue番号-説明' のブランチを切ってから作業してください。" >&2
+    echo "main ブランチ上では commit できません。Issue を作り、'<type>/#<issue番号>-<説明>' のブランチを切ってから作業してください。" >&2
     exit 2
   fi
 fi
