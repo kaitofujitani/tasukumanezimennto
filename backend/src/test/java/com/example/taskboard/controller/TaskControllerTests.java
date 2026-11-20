@@ -1,7 +1,9 @@
 package com.example.taskboard.controller;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -12,7 +14,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
@@ -103,6 +107,63 @@ class TaskControllerTests {
 	void UUIDでないidは400() throws Exception {
 		mvc.perform(get("/api/tasks/not-a-uuid"))
 				.andExpect(status().isBadRequest());
+	}
+
+	private ResultActions postTask(String json) throws Exception {
+		return mvc.perform(post("/api/tasks").contentType(MediaType.APPLICATION_JSON).content(json));
+	}
+
+	@Test
+	void 登録すると列の一番下に入り201と登録したタスクを返す() throws Exception {
+		postTask("{\"columnId\": " + todo.getId() + ", \"title\": \"  新しいタスク  \"}")
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.id").isString())
+				.andExpect(jsonPath("$.columnId").value(todo.getId()))
+				.andExpect(jsonPath("$.title").value("新しいタスク"))
+				.andExpect(jsonPath("$.description").value(""))
+				.andExpect(jsonPath("$.priority").value("mid"))
+				.andExpect(jsonPath("$.due").value(nullValue()))
+				.andExpect(jsonPath("$.position").value(2))
+				.andExpect(jsonPath("$.createdAt").isString());
+
+		mvc.perform(get("/api/tasks").param("columnId", todo.getId().toString()))
+				.andExpect(jsonPath("$[*].title").value(contains("未着手の1つ目", "未着手の2つ目", "新しいタスク")));
+	}
+
+	@Test
+	void 空の列に登録するとpositionは0() throws Exception {
+		BoardColumn done = columns.findAllByOrderByPositionAsc().get(2);
+		postTask("{\"columnId\": " + done.getId() + ", \"title\": \"完了したこと\"}")
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.position").value(0));
+	}
+
+	@Test
+	void 空白だけのタイトルは400() throws Exception {
+		postTask("{\"columnId\": " + todo.getId() + ", \"title\": \"   \"}")
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("タイトルを入力してください"));
+	}
+
+	@Test
+	void 列の指定がなければ400() throws Exception {
+		postTask("{\"title\": \"列なし\"}")
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("列を指定してください"));
+	}
+
+	@Test
+	void ない列への登録は404() throws Exception {
+		postTask("{\"columnId\": 9999, \"title\": \"どこにも入らない\"}")
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.error").value("列が見つかりません"));
+	}
+
+	@Test
+	void JSONとして読めなければ400() throws Exception {
+		postTask("{壊れたJSON")
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("送られた内容が正しくありません"));
 	}
 
 }

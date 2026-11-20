@@ -6,11 +6,14 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.taskboard.dto.CreateTaskRequest;
 import com.example.taskboard.dto.TaskResponse;
+import com.example.taskboard.entity.BoardColumn;
+import com.example.taskboard.entity.Task;
 import com.example.taskboard.repository.BoardColumnRepository;
 import com.example.taskboard.repository.TaskRepository;
 
-/** タスクの読み取り（登録・移動・並べ替えは今後ここに足す） */
+/** タスクの読み取りと登録（変更・削除・移動・並べ替えは今後ここに足す） */
 @Service
 public class TaskService {
 
@@ -39,6 +42,17 @@ public class TaskService {
 		return tasks.findByColumnIdOrderByPositionAsc(columnId).stream()
 				.map(TaskResponse::from)
 				.toList();
+	}
+
+	/** 指定した列の一番下にタスクを登録する。タイトルは前後の空白を取り除く。列がなければ NotFoundException */
+	@Transactional
+	public TaskResponse create(CreateTaskRequest request) {
+		BoardColumn column = columns.findById(request.columnId())
+				.orElseThrow(() -> new NotFoundException("列が見つかりません"));
+		int position = tasks.findMaxPositionByColumnId(column.getId()) + 1;
+		// saveAndFlush で INSERT し、created_at などを確定させてから返す
+		Task saved = tasks.saveAndFlush(new Task(column, request.title().strip(), position));
+		return TaskResponse.from(saved);
 	}
 
 	/** タスクを1件返す。なければ NotFoundException */
