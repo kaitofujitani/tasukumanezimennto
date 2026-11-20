@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 概要
 
-ブラウザだけで動く、Trello 風のカンバン式タスク管理アプリ（固定3列・ドラッグ＆ドロップで移動）。HTML・CSS・JavaScript はすべて [index.html](index.html) にインラインで書かれている。ビルド・パッケージマネージャ・依存ライブラリ・テスト・リンターは存在しない。
+ブラウザだけで動く、Trello 風のカンバン式タスク管理アプリ（固定3列・ドラッグ＆ドロップで移動）。HTML・CSS・JavaScript はすべて [index.html](index.html) にインラインで書かれている。この版にはビルド・パッケージマネージャ・依存ライブラリ・テスト・リンターは存在しない（移行中の `backend/`（Gradle）と `frontend/`（npm）は別）。
 
 要件は [docs/requirements.md](docs/requirements.md) に概要をまとめ、機能・画面・データベース・API・技術の詳細は docs/ 内の別の資料に分けてある（一覧は [docs/README.md](docs/README.md)）。機能を足すときは、まず要件定義書と関係する資料に食い違わないかを確認し、変更したら該当する資料も更新する。
 
@@ -19,9 +19,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 動作確認は手動でブラウザ上で行う（自動テストなし）
 - バックエンド（移行中・`backend/`）: `cd backend && docker compose up -d` で開発用 PostgreSQL を起動し、`APP_PASSWORD=<ログインのパスワード> ./gradlew bootRun` → http://localhost:8080 （`APP_PASSWORD` が未設定・空だと起動しない）。起動時に Flyway が `src/main/resources/db/migration/` の SQL を適用する。接続先は環境変数 `DB_URL` / `DB_USERNAME` / `DB_PASSWORD` で上書きでき、未設定なら `compose.yaml` の開発用 DB につなぐ
 - テストデータ: テーブルができたあと（一度 `bootRun` したあと）に `cd backend && docker compose exec -T db psql -U taskboard -d taskboard < dev/seed.sql` で入れる。本番に入らないよう Flyway のマイグレーションには入れていない。実行するたびに tasks の行をすべて消して入れ直す。API はログインが必要。curl では `curl -c cookies.txt -X POST localhost:8080/api/login -H 'Content-Type: application/json' -d '{"password":"…"}'` でログインし、以後 `-b cookies.txt` を付けて呼ぶ（例: `curl -b cookies.txt localhost:8080/api/board`）。`POST`・`PATCH`・`DELETE` は Cookie `XSRF-TOKEN` の値をヘッダー `X-XSRF-TOKEN` にも付ける
+- フロントエンド（移行中・`frontend/`、React + TypeScript + Vite）: `cd frontend && npm install` のあと、バックエンドを起動した状態で `npm run dev` → http://localhost:5173 。`/api` は Vite が 8080 に転送する。テストは `npm test`（Vitest + React Testing Library。fetch を偽のサーバーに差し替えて画面の動きを確かめる）、型チェックとビルドは `npm run build`（`dist/` に出力）
 - GitHub Pages で `main` ブランチのルートを公開している: https://kaitofujitani.github.io/tasukumanezimennto/ 。`main` に push すると数分で反映される。
 
 ## アーキテクチャ
+
+React 版（`frontend/`）は mock/index.html の見た目と動きを移したもの。`App.tsx` がログイン画面とボード画面を切り替え、`components/Board.tsx` がボードのデータを持つ。操作したら先に画面を書き換え（並びの計算は `board.ts`）、そのあと `api.ts` で保存し、失敗したらエラーの帯を出して読み込み直す。以下は今の localStorage 版（ルートの index.html）の説明。
 
 - **状態**: モジュールスコープの `cards` 配列（全カード）と、ドラッグ中のカード ID を持つ `draggingId`、詳細画面で開いているカードを持つ `editing`。
 - **永続化**: `localStorage` のキー `board.v1` に JSON で保存。データ構造を変える場合は互換性のためキーのバージョンを上げるか、`load()` で移行処理を入れること。
@@ -34,7 +37,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **ドラッグ＆ドロップ**: HTML5 Drag and Drop API を使用。`dragover` で `cardAfter()` がマウスの Y 座標から挿入位置を求め、`.placeholder` の線を表示する。`drop` でカードを配列から抜き、`status` を書き換えて挿入先カードの直前（なければ末尾）に入れ直す。タッチ操作では動かない。
 - **詳細画面**: `<dialog id="detail">` を `showModal()` で開く。入力は `oninput` / `onchange` でその場で `editing` に反映して `save()` → `render()` する（保存ボタンはない）。列の変更は移動先の列の末尾に入れ、「上へ」「下へ」は同じ列の隣のカードと配列内の位置を入れ替える。スマホではこの画面が列の移動・並べ替えの手段になる。
 - **テーマ**: 色は `:root` の CSS 変数で定義し、`prefers-color-scheme: dark` で上書きしている。新しい色はこの変数に追加する。
-- **背景写真**: 写真は `images/` に置き、`BACKGROUNDS` 配列（`{ src, credit, url }`）に登録する。`credit` は右下の `#credit` リンクの文言、`url` はそのリンク先（出典ページ）。現在の写真はすべて Wikimedia Commons のもので、ライセンスの詳細は [images/CREDITS.md](images/CREDITS.md) にある。写真を追加・削除したら `BACKGROUNDS` と CREDITS.md の両方を更新する。1枚 500KB 以下を目安に縮小・圧縮して置く。`setBackground()` が開くたびにランダムで1枚選び、読み込めたときだけ `body` に `has-bg` を付ける。`has-bg` のときは列とヘッダーを `--glass`（半透明）にする。写真は iPhone の Safari でも固定表示されるよう、`background-attachment: fixed` ではなく固定配置の `.bg` 要素に敷いている。写真は利用が許可されたものだけを使い、必要なら `credit` を表記する。
+- **背景写真**: 写真は `images/` に置き、`BACKGROUNDS` 配列（`{ src, credit, url }`）に登録する。`credit` は右下の `#credit` リンクの文言、`url` はそのリンク先（出典ページ）。現在の写真はすべて Wikimedia Commons のもので、ライセンスの詳細は [images/CREDITS.md](images/CREDITS.md) にある。写真を追加・削除したら `BACKGROUNDS` と CREDITS.md の両方を更新する。1枚 500KB 以下を目安に縮小・圧縮して置く。`setBackground()` が開くたびにランダムで1枚選び、読み込めたときだけ `body` に `has-bg` を付ける。`has-bg` のときは列とヘッダーを `--glass`（半透明）にする。写真は iPhone の Safari でも固定表示されるよう、`background-attachment: fixed` ではなく固定配置の `.bg` 要素に敷いている。写真は利用が許可されたものだけを使い、必要なら `credit` を表記する。React 版（`frontend/`）では、写真を `frontend/public/images/` に、一覧を `frontend/src/backgrounds.ts` の `BACKGROUNDS` に置いている。写真を足す・消すときは、両方の版と CREDITS.md をそろえる。
 
 ## Git 運用ルール（厳守）
 
