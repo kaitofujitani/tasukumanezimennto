@@ -3,6 +3,7 @@ package com.example.taskboard.controller;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -157,6 +158,71 @@ class TaskControllerTests {
 		postTask("{\"columnId\": 9999, \"title\": \"どこにも入らない\"}")
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.error").value("列が見つかりません"));
+	}
+
+	private ResultActions patchTask(UUID id, String json) throws Exception {
+		return mvc.perform(patch("/api/tasks/{id}", id).contentType(MediaType.APPLICATION_JSON).content(json));
+	}
+
+	@Test
+	void 送った項目だけ変わる() throws Exception {
+		patchTask(first.getId(), "{\"priority\": \"high\", \"due\": \"2026-12-01\"}")
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(first.getId().toString()))
+				.andExpect(jsonPath("$.title").value("未着手の1つ目"))
+				.andExpect(jsonPath("$.description").value(""))
+				.andExpect(jsonPath("$.priority").value("high"))
+				.andExpect(jsonPath("$.due").value("2026-12-01"))
+				.andExpect(jsonPath("$.columnId").value(todo.getId()))
+				.andExpect(jsonPath("$.position").value(0));
+
+		patchTask(first.getId(), "{\"title\": \"  新しい名前  \", \"description\": \" 説明\\n2行目 \"}")
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.title").value("新しい名前"))
+				.andExpect(jsonPath("$.description").value(" 説明\n2行目 "))
+				.andExpect(jsonPath("$.priority").value("high"))
+				.andExpect(jsonPath("$.due").value("2026-12-01"));
+
+		mvc.perform(get("/api/tasks/{id}", first.getId()))
+				.andExpect(jsonPath("$.title").value("新しい名前"))
+				.andExpect(jsonPath("$.priority").value("high"));
+	}
+
+	@Test
+	void dueにnullを送ると期限なしになる() throws Exception {
+		patchTask(first.getId(), "{\"due\": \"2026-12-01\"}").andExpect(status().isOk());
+		patchTask(first.getId(), "{\"due\": null}")
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.due").value(nullValue()));
+	}
+
+	@Test
+	void 空白だけのタイトルへの変更は400で変わらない() throws Exception {
+		patchTask(first.getId(), "{\"title\": \"  \"}")
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("タイトルを入力してください"));
+		mvc.perform(get("/api/tasks/{id}", first.getId()))
+				.andExpect(jsonPath("$.title").value("未着手の1つ目"));
+	}
+
+	@Test
+	void 決まっていない優先度は400() throws Exception {
+		patchTask(first.getId(), "{\"priority\": \"urgent\"}")
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("優先度は high・mid・low のどれかにしてください"));
+	}
+
+	@Test
+	void 日付の形でない期限は400() throws Exception {
+		patchTask(first.getId(), "{\"due\": \"12月1日\"}")
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void ないタスクの変更は404() throws Exception {
+		patchTask(UUID.randomUUID(), "{\"title\": \"だれもいない\"}")
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.error").value("タスクが見つかりません"));
 	}
 
 	@Test

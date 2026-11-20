@@ -8,12 +8,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.taskboard.dto.CreateTaskRequest;
 import com.example.taskboard.dto.TaskResponse;
+import com.example.taskboard.dto.UpdateTaskRequest;
 import com.example.taskboard.entity.BoardColumn;
 import com.example.taskboard.entity.Task;
 import com.example.taskboard.repository.BoardColumnRepository;
 import com.example.taskboard.repository.TaskRepository;
 
-/** タスクの読み取りと登録（変更・削除・移動・並べ替えは今後ここに足す） */
+/** タスクの読み取り・登録・内容の変更（削除・移動・並べ替えは今後ここに足す） */
 @Service
 public class TaskService {
 
@@ -53,6 +54,27 @@ public class TaskService {
 		// saveAndFlush で INSERT し、created_at などを確定させてから返す
 		Task saved = tasks.saveAndFlush(new Task(column, request.title().strip(), position));
 		return TaskResponse.from(saved);
+	}
+
+	/** 送られた項目だけを変える。タスクがなければ NotFoundException。updated_at は変更があれば自動で更新される */
+	@Transactional
+	public TaskResponse update(UUID id, UpdateTaskRequest request) {
+		Task task = tasks.findById(id)
+				.orElseThrow(() -> new NotFoundException("タスクが見つかりません"));
+		if (request.getTitle() != null) {
+			task.setTitle(request.getTitle().strip());
+		}
+		if (request.getDescription() != null) {
+			task.setDescription(request.getDescription());
+		}
+		if (request.getPriority() != null) {
+			task.setPriority(request.getPriority());
+		}
+		if (request.isDueSpecified()) {
+			task.setDue(request.getDue());
+		}
+		tasks.flush();
+		return TaskResponse.from(task);
 	}
 
 	/** タスクを1件返す。なければ NotFoundException */
