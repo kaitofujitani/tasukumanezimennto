@@ -76,7 +76,7 @@ flowchart LR
 | 場面 | 動かし方 |
 |---|---|
 | 開発 | `backend` で `./gradlew bootRun`（ポート 8080）、`frontend` で `npm run dev`（Vite）。画面からの `/api` は Vite が 8080 に転送するので、本番と同じ URL のまま開発できる |
-| 公開 | `Dockerfile` が ① `frontend` をビルド ② できたファイルを Spring Boot の `static` に入れる ③ `backend` をビルド ④ 1つの jar ファイルで起動、の順に行う。GitHub の `main` に push すると Render が自動でこの手順を実行する |
+| 公開 | `Dockerfile` が ① `frontend` をビルド ② できたファイルを Spring Boot の `static` に入れる ③ `backend` をビルド ④ 1つの jar ファイルで起動、の順に行う。GitHub の `main` に push すると Render が自動でこの手順を実行する。設定の手順は [公開手順書](deploy.md) |
 
 ### 1.5 環境変数
 

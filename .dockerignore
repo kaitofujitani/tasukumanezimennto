@@ -1,0 +1,18 @@
+# Docker のビルドに送らないもの（手元のビルド結果・ライブラリ・秘密情報・公開に関係ないファイル）
+.git
+.github
+.claude
+**/.DS_Store
+**/node_modules
+frontend/dist
+frontend/*.tsbuildinfo
+backend/build
+backend/.gradle
+backend/bin
+.env
+.env.*
+docs
+mock
+images
+index.html
+*.code-workspace
