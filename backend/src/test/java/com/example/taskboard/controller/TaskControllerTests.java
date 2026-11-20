@@ -254,6 +254,91 @@ class TaskControllerTests {
 				.andExpect(jsonPath("$.error").value("タスクが見つかりません"));
 	}
 
+	private Task byTitle(String title) {
+		return tasks.findAll().stream().filter(t -> t.getTitle().equals(title)).findFirst().orElseThrow();
+	}
+
+	private ResultActions moveTask(UUID id, String json) throws Exception {
+		return mvc.perform(post("/api/tasks/{id}/move", id).contentType(MediaType.APPLICATION_JSON).content(json));
+	}
+
+	private static String moveJson(BoardColumn column, Task before) {
+		return "{\"columnId\": " + column.getId() + ", \"beforeId\": "
+				+ (before == null ? "null" : "\"" + before.getId() + "\"") + "}";
+	}
+
+	/** 列のタスクが、この順・position 0, 1, 2… で並んでいることを確かめる */
+	private void expectColumn(BoardColumn column, String... titles) throws Exception {
+		Integer[] positions = new Integer[titles.length];
+		for (int i = 0; i < titles.length; i++) {
+			positions[i] = i;
+		}
+		ResultActions result = mvc.perform(get("/api/tasks").param("columnId", column.getId().toString()));
+		if (titles.length == 0) {
+			result.andExpect(jsonPath("$").isEmpty());
+		} else {
+			result.andExpect(jsonPath("$[*].title").value(contains(titles)))
+					.andExpect(jsonPath("$[*].position").value(contains(positions)));
+		}
+	}
+
+	@Test
+	void 同じ列の一番下へ動かせる() throws Exception {
+		moveTask(first.getId(), moveJson(todo, null)).andExpect(status().isNoContent());
+		expectColumn(todo, "未着手の2つ目", "未着手の1つ目");
+	}
+
+	@Test
+	void 同じ列で1つ上へ動かせる() throws Exception {
+		moveTask(byTitle("未着手の2つ目").getId(), moveJson(todo, first)).andExpect(status().isNoContent());
+		expectColumn(todo, "未着手の2つ目", "未着手の1つ目");
+	}
+
+	@Test
+	void 別の列のタスクの直前へ動かせる() throws Exception {
+		moveTask(first.getId(), moveJson(doing, byTitle("進行中の1つ目"))).andExpect(status().isNoContent());
+		expectColumn(todo, "未着手の2つ目");
+		expectColumn(doing, "未着手の1つ目", "進行中の1つ目");
+		mvc.perform(get("/api/tasks/{id}", first.getId()))
+				.andExpect(jsonPath("$.columnId").value(doing.getId()));
+	}
+
+	@Test
+	void 空の列へ動かせる() throws Exception {
+		BoardColumn done = columns.findAllByOrderByPositionAsc().get(2);
+		moveTask(byTitle("進行中の1つ目").getId(), moveJson(done, null)).andExpect(status().isNoContent());
+		expectColumn(doing);
+		expectColumn(done, "進行中の1つ目");
+	}
+
+	@Test
+	void 自分自身の直前を指定しても変わらない() throws Exception {
+		moveTask(first.getId(), moveJson(todo, first)).andExpect(status().isNoContent());
+		expectColumn(todo, "未着手の1つ目", "未着手の2つ目");
+	}
+
+	@Test
+	void 移動のエラー() throws Exception {
+		moveTask(UUID.randomUUID(), moveJson(todo, null))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.error").value("タスクが見つかりません"));
+		moveTask(first.getId(), "{\"columnId\": 9999, \"beforeId\": null}")
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.error").value("列が見つかりません"));
+		moveTask(first.getId(), "{\"columnId\": " + todo.getId() + ", \"beforeId\": \"" + UUID.randomUUID() + "\"}")
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.error").value("beforeId のタスクが見つかりません"));
+		moveTask(first.getId(), moveJson(todo, byTitle("進行中の1つ目")))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("beforeId のタスクが動かし先の列にありません"));
+		moveTask(first.getId(), "{\"beforeId\": null}")
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("列を指定してください"));
+		// エラーのときは何も変わらない
+		expectColumn(todo, "未着手の1つ目", "未着手の2つ目");
+		expectColumn(doing, "進行中の1つ目");
+	}
+
 	@Test
 	void JSONとして読めなければ400() throws Exception {
 		postTask("{壊れたJSON")

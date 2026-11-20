@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import com.example.taskboard.service.BadRequestException;
 import com.example.taskboard.service.NotFoundException;
 
 /** エラーを docs/api.md の 2章の形 { "error": "理由" } で返す */
@@ -20,6 +21,12 @@ public class ApiExceptionHandler {
 	@ExceptionHandler(NotFoundException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public Map<String, String> notFound(NotFoundException e) {
+		return Map.of("error", e.getMessage());
+	}
+
+	@ExceptionHandler(BadRequestException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public Map<String, String> badRequest(BadRequestException e) {
 		return Map.of("error", e.getMessage());
 	}
 
