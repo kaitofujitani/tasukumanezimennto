@@ -55,7 +55,7 @@ flowchart LR
 │   │   ├── repository/                BoardColumnRepository・TaskRepository
 │   │   ├── entity/                    BoardColumn・Task（テーブルに対応するクラス）
 │   │   ├── dto/                       API で受け取る内容・返す内容の形
-│   │   └── config/SecurityConfig.java ログインの設定
+│   │   └── config/                    SecurityConfig（ログインの設定）・PasswordChecker（パスワードの照合）
 │   ├── src/main/resources/
 │   │   ├── application.properties     設定（環境変数を読み込む）
 │   │   └── db/migration/
@@ -85,7 +85,7 @@ flowchart LR
 | `DB_URL` | Neon のデータベースに接続するための URL（`jdbc:postgresql://…?sslmode=require` の形）。未設定なら開発用 DB（`compose.yaml`）につなぐ |
 | `DB_USERNAME` | データベースのユーザー名 |
 | `DB_PASSWORD` | データベースのパスワード |
-| `APP_PASSWORD` | ログインのパスワード |
+| `APP_PASSWORD` | ログインのパスワード（未設定・空だとサーバーが起動しない） |
 | `PORT` | サーバーが待ち受ける番号（Render が自動で設定する。`application.properties` で `server.port` に渡す） |
 | `JAVA_TOOL_OPTIONS` | Java が使うメモリの上限（例：`-XX:MaxRAMPercentage=75`）。無料プランのメモリが少ないため |
 
@@ -276,17 +276,21 @@ sequenceDiagram
   S-->>B: 200 ＋ ボード
 ```
 
-- パスワードは1つだけで、環境変数 `APP_PASSWORD` と比べる。比べるときは、かかる時間で中身を推測されない方法（`MessageDigest.isEqual`）を使う
+- パスワードは1つだけで、環境変数 `APP_PASSWORD` と比べる。比べるときは、かかる時間で中身を推測されない方法（`MessageDigest.isEqual`）を使う。長さの違いも出ないよう、両方を SHA-256 にしてから比べる（`PasswordChecker`）
+- `APP_PASSWORD` が未設定・空のときは、サーバーを起動しない（パスワードなしで公開してしまうのを防ぐ）
 - 正しければ、Spring Security の「ログイン済み」の状態を作り、Spring Session JDBC がデータベースに保存する。ブラウザには、それを指す番号だけを Cookie（`SESSION`）で渡す。データベースに保存するので、サーバーが休止・再起動してもログインは切れない
+- ログインに成功したら、セッションの番号と CSRF 対策のトークンを作り直す（ログイン前の番号やトークンを使い回させない）
 - ログイン状態の Cookie の設定
 
 | 設定 | 値 | 理由 |
 |---|---|---|
 | `HttpOnly` | あり | 画面の JavaScript から読めないようにする |
-| `Secure` | あり | HTTPS のときだけ送る |
+| `Secure` | HTTPS で受けたときだけ付ける | HTTPS のときだけ送る。Render の前段からの `X-Forwarded-Proto` で判断する（`server.forward-headers-strategy=native`）。開発中の http://localhost では付かない |
 | `SameSite` | `Lax` | 他のサイトから API を呼ばれても Cookie を送らない |
 | `Max-Age` | 30日 | [機能仕様書](features.md) の F1。データベースのログイン状態の有効期限も30日にする |
 
 - CSRF（他のサイトから勝手に操作させる攻撃）対策として、Spring Security の CSRF 対策を有効にする。トークンは Cookie（`XSRF-TOKEN`、画面から読める）で渡し、画面は `POST`・`PATCH`・`DELETE` のときにその値をヘッダー `X-XSRF-TOKEN` に付けて送る
 - パスワードを何度も試されるのを防ぐため、ログインに失敗したら 1 秒待ってから返す
+- ログインしていないときの `401` は `{ "error": "ログインしてください" }`、CSRF 対策のトークンがないときの `403` は `{ "error": "CSRF 対策のトークンがないか、正しくありません" }` を返す
+- ログアウト（A2）は CSRF 対策のトークンが必要。Cookie（`SESSION`・`XSRF-TOKEN`）を消し、データベースのログイン状態も消す
 - `APP_PASSWORD` を変えても、すでにログインしている端末はそのまま使える。すべての端末をログアウトさせたいときは、データベースのログイン状態のテーブル（`spring_session`）の行を削除する
