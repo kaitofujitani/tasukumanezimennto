@@ -12,4 +12,7 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
 	/** 指定した列のタスクを表示順（上から）で返す */
 	List<Task> findByColumnIdOrderByPositionAsc(Integer columnId);
 
+	/** 全タスクを、列の表示順（左から）→列の中の表示順（上から）で返す */
+	List<Task> findAllByOrderByColumnPositionAscPositionAsc();
+
 }
