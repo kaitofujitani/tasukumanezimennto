@@ -26,7 +26,7 @@ import com.example.taskboard.service.TaskService;
 
 import jakarta.validation.Valid;
 
-/** A4〜A10 タスクの登録・変更・削除・移動・並べ替え・読み取り（docs/api.md）。ログイン（A1）は未実装のため、今は誰でも呼べる。 */
+/** A4〜A10 タスクの登録・変更・削除・移動・並べ替え・読み取り（docs/api.md）。ログインが必要（SecurityConfig） */
 @RestController
 @RequestMapping("/api/tasks")
 public class TaskController {

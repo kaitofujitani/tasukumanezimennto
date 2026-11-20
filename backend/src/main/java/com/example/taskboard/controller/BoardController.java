@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.taskboard.dto.BoardResponse;
 import com.example.taskboard.service.BoardService;
 
-/** A3 ボードを取得する（docs/api.md）。ログイン（A1）は未実装のため、今は誰でも呼べる。 */
+/** A3 ボードを取得する（docs/api.md）。ログインが必要（SecurityConfig） */
 @RestController
 @RequestMapping("/api/board")
 public class BoardController {
