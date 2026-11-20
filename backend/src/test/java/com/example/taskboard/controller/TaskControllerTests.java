@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -337,6 +338,69 @@ class TaskControllerTests {
 		// エラーのときは何も変わらない
 		expectColumn(todo, "未着手の1つ目", "未着手の2つ目");
 		expectColumn(doing, "進行中の1つ目");
+	}
+
+	/** 「完了」列に並べ替え用のタスクを A, B, C, D の順に登録する（登録日時がずれるよう 1 件ずつ保存） */
+	private BoardColumn prepareSortData() throws Exception {
+		BoardColumn done = columns.findAllByOrderByPositionAsc().get(2);
+		Object[][] rows = {
+				{ "A", "low", null },
+				{ "B", "high", LocalDate.of(2026, 12, 10) },
+				{ "C", "mid", LocalDate.of(2026, 12, 1) },
+				{ "D", "high", null },
+		};
+		for (int i = 0; i < rows.length; i++) {
+			Task t = new Task(done, (String) rows[i][0], i);
+			t.setPriority((String) rows[i][1]);
+			t.setDue((LocalDate) rows[i][2]);
+			tasks.saveAndFlush(t);
+			Thread.sleep(5);
+		}
+		return done;
+	}
+
+	private ResultActions sortTasks(String json) throws Exception {
+		return mvc.perform(post("/api/tasks/sort").contentType(MediaType.APPLICATION_JSON).content(json));
+	}
+
+	@Test
+	void 優先度順に並べ替えてボード全体を返す() throws Exception {
+		BoardColumn done = prepareSortData();
+		sortTasks("{\"by\": \"priority\"}")
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.columns[*].name").value(contains("未着手", "進行中", "完了")))
+				.andExpect(jsonPath("$.tasks[*].title").value(contains(
+						"未着手の1つ目", "未着手の2つ目", "進行中の1つ目", "B", "D", "C", "A")));
+		// 高（期限が近い順・期限なしは後ろ）→ 中 → 低
+		expectColumn(done, "B", "D", "C", "A");
+		// 条件が同じタスクは今の並びのまま
+		expectColumn(todo, "未着手の1つ目", "未着手の2つ目");
+	}
+
+	@Test
+	void 期限順に並べ替える() throws Exception {
+		BoardColumn done = prepareSortData();
+		sortTasks("{\"by\": \"due\"}").andExpect(status().isOk());
+		// 期限が近い順 → 期限なしは最後（その中は優先度が高い順）
+		expectColumn(done, "C", "B", "D", "A");
+	}
+
+	@Test
+	void 登録順に並べ替える() throws Exception {
+		BoardColumn done = prepareSortData();
+		sortTasks("{\"by\": \"priority\"}").andExpect(status().isOk());
+		sortTasks("{\"by\": \"created\"}").andExpect(status().isOk());
+		expectColumn(done, "A", "B", "C", "D");
+	}
+
+	@Test
+	void 並べ方の指定が正しくなければ400() throws Exception {
+		sortTasks("{}")
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("並べ方を指定してください"));
+		sortTasks("{\"by\": \"title\"}")
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("並べ方は priority・due・created のどれかにしてください"));
 	}
 
 	@Test
