@@ -2,6 +2,7 @@ package com.example.taskboard.controller;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -221,6 +222,34 @@ class TaskControllerTests {
 	@Test
 	void ないタスクの変更は404() throws Exception {
 		patchTask(UUID.randomUUID(), "{\"title\": \"だれもいない\"}")
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.error").value("タスクが見つかりません"));
+	}
+
+	@Test
+	void 削除すると204で残りのpositionが詰められる() throws Exception {
+		Task third = tasks.save(new Task(todo, "未着手の3つ目", 2));
+		tasks.flush();
+
+		mvc.perform(delete("/api/tasks/{id}", first.getId()))
+				.andExpect(status().isNoContent());
+
+		mvc.perform(get("/api/tasks/{id}", first.getId()))
+				.andExpect(status().isNotFound());
+		mvc.perform(get("/api/tasks").param("columnId", todo.getId().toString()))
+				.andExpect(jsonPath("$[*].title").value(contains("未着手の2つ目", "未着手の3つ目")))
+				.andExpect(jsonPath("$[*].position").value(contains(0, 1)));
+		// ほかの列は変わらない
+		mvc.perform(get("/api/tasks").param("columnId", doing.getId().toString()))
+				.andExpect(jsonPath("$[*].title").value(contains("進行中の1つ目")))
+				.andExpect(jsonPath("$[*].position").value(contains(0)));
+		mvc.perform(get("/api/tasks/{id}", third.getId()))
+				.andExpect(jsonPath("$.position").value(1));
+	}
+
+	@Test
+	void ないタスクの削除は404() throws Exception {
+		mvc.perform(delete("/api/tasks/{id}", UUID.randomUUID()))
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.error").value("タスクが見つかりません"));
 	}

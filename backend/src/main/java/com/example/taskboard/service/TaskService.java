@@ -14,7 +14,7 @@ import com.example.taskboard.entity.Task;
 import com.example.taskboard.repository.BoardColumnRepository;
 import com.example.taskboard.repository.TaskRepository;
 
-/** タスクの読み取り・登録・内容の変更（削除・移動・並べ替えは今後ここに足す） */
+/** タスクの読み取り・登録・内容の変更・削除（移動・並べ替えは今後ここに足す） */
 @Service
 public class TaskService {
 
@@ -75,6 +75,20 @@ public class TaskService {
 		}
 		tasks.flush();
 		return TaskResponse.from(task);
+	}
+
+	/** タスクを削除し、同じ列の残りのタスクの position を 0 から振り直す。タスクがなければ NotFoundException */
+	@Transactional
+	public void delete(UUID id) {
+		Task task = tasks.findById(id)
+				.orElseThrow(() -> new NotFoundException("タスクが見つかりません"));
+		Integer columnId = task.getColumn().getId();
+		tasks.delete(task);
+		tasks.flush();
+		List<Task> remaining = tasks.findByColumnIdOrderByPositionAsc(columnId);
+		for (int i = 0; i < remaining.size(); i++) {
+			remaining.get(i).setPosition(i);
+		}
 	}
 
 	/** タスクを1件返す。なければ NotFoundException */
