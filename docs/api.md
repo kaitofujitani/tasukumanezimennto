@@ -41,6 +41,8 @@ flowchart LR
 │   │   ├── main.tsx                   画面の起点
 │   │   ├── App.tsx                    ログイン画面とボード画面の切り替え
 │   │   ├── api.ts                     API を呼ぶ処理
+│   │   ├── board.ts                   画面の中のタスクの並びを書き換える処理（保存する前に先に画面を書き換えるため）
+│   │   ├── backgrounds.ts             背景写真の一覧
 │   │   ├── types.ts                   API でやりとりするデータの型
 │   │   ├── components/                画面の部品（LoginPage・Board・Column・TaskCard・TaskDetail）
 │   │   └── styles.css
