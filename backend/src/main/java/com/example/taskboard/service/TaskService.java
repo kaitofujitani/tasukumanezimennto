@@ -1,7 +1,9 @@
 package com.example.taskboard.service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -16,7 +18,7 @@ import com.example.taskboard.entity.Task;
 import com.example.taskboard.repository.BoardColumnRepository;
 import com.example.taskboard.repository.TaskRepository;
 
-/** タスクの読み取り・登録・内容の変更・削除・移動（並べ替えは今後ここに足す） */
+/** タスクの読み取り・登録・内容の変更・削除・移動・並べ替え */
 @Service
 public class TaskService {
 
@@ -135,6 +137,23 @@ public class TaskService {
 		renumber(dest);
 		source.removeIf(t -> t.getId().equals(id));
 		renumber(source);
+	}
+
+	/** 全部の列をそれぞれ by の並べ方で並べ替え、position を振り直して保存する */
+	@Transactional
+	public void sort(String by) {
+		List<Task> sorted = switch (by) {
+			case "priority" -> tasks.findAllOrderByPriority();
+			case "due" -> tasks.findAllOrderByDue();
+			case "created" -> tasks.findAllOrderByCreated();
+			default -> throw new BadRequestException("並べ方は priority・due・created のどれかにしてください");
+		};
+		// 列ごとに分け（並んだ順を保つ）、それぞれ 0 から振り直す
+		Map<Integer, List<Task>> byColumn = new LinkedHashMap<>();
+		for (Task t : sorted) {
+			byColumn.computeIfAbsent(t.getColumn().getId(), k -> new ArrayList<>()).add(t);
+		}
+		byColumn.values().forEach(TaskService::renumber);
 	}
 
 	private static int indexOf(List<Task> list, UUID id) {
