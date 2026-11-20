@@ -18,6 +18,7 @@ This file provides guidance to Codex when working with code in this repository.
 - ローカルサーバーが必要な場合: `python3 -m http.server` → http://localhost:8000
 - 動作確認は手動でブラウザ上で行う（自動テストなし）
 - バックエンド（移行中・`backend/`）: `cd backend && docker compose up -d` で開発用 PostgreSQL を起動し、`./gradlew bootRun` → http://localhost:8080 。起動時に Flyway が `src/main/resources/db/migration/` の SQL を適用する。接続先は環境変数 `DB_URL` / `DB_USERNAME` / `DB_PASSWORD` で上書きでき、未設定なら `compose.yaml` の開発用 DB につなぐ
+- テストデータ: テーブルができたあと（一度 `bootRun` したあと）に `cd backend && docker compose exec -T db psql -U taskboard -d taskboard < dev/seed.sql` で入れる。本番に入らないよう Flyway のマイグレーションには入れていない。実行するたびに tasks の行をすべて消して入れ直す。`curl http://localhost:8080/api/board` で列とタスクが返る（ログインは未実装なので今は認証なし）
 - GitHub Pages で `main` ブランチのルートを公開している: https://kaitofujitani.github.io/tasukumanezimennto/ 。PR が `main` にマージされると数分で反映される。
 
 ## アーキテクチャ
