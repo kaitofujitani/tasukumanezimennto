@@ -20,6 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - バックエンド（移行中・`backend/`）: `cd backend && docker compose up -d` で開発用 PostgreSQL を起動し、`APP_PASSWORD=<ログインのパスワード> ./gradlew bootRun` → http://localhost:8080 （`APP_PASSWORD` が未設定・空だと起動しない）。起動時に Flyway が `src/main/resources/db/migration/` の SQL を適用する。接続先は環境変数 `DB_URL` / `DB_USERNAME` / `DB_PASSWORD` で上書きでき、未設定なら `compose.yaml` の開発用 DB につなぐ
 - テストデータ: テーブルができたあと（一度 `bootRun` したあと）に `cd backend && docker compose exec -T db psql -U taskboard -d taskboard < dev/seed.sql` で入れる。本番に入らないよう Flyway のマイグレーションには入れていない。実行するたびに tasks の行をすべて消して入れ直す。API はログインが必要。curl では `curl -c cookies.txt -X POST localhost:8080/api/login -H 'Content-Type: application/json' -d '{"password":"…"}'` でログインし、以後 `-b cookies.txt` を付けて呼ぶ（例: `curl -b cookies.txt localhost:8080/api/board`）。`POST`・`PATCH`・`DELETE` は Cookie `XSRF-TOKEN` の値をヘッダー `X-XSRF-TOKEN` にも付ける
 - フロントエンド（移行中・`frontend/`、React + TypeScript + Vite）: `cd frontend && npm install` のあと、バックエンドを起動した状態で `npm run dev` → http://localhost:5173 。`/api` は Vite が 8080 に転送する。テストは `npm test`（Vitest + React Testing Library。fetch を偽のサーバーに差し替えて画面の動きを確かめる）、型チェックとビルドは `npm run build`（`dist/` に出力）
+- 公開用のイメージ: リポジトリのルートの `Dockerfile` が画面とサーバーをビルドして 1 つの jar にまとめる（`docker build -t taskboard:local .`）。Render（無料・Docker）と Neon（PostgreSQL）での公開手順は [docs/deploy.md](docs/deploy.md)。待ち受けるポートは環境変数 `PORT`（未設定なら 8080）
 - GitHub Pages で `main` ブランチのルートを公開している: https://kaitofujitani.github.io/tasukumanezimennto/ 。`main` に push すると数分で反映される。
 
 ## アーキテクチャ
