@@ -16,13 +16,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.taskboard.dto.CreateTaskRequest;
+import com.example.taskboard.dto.MoveTaskRequest;
 import com.example.taskboard.dto.TaskResponse;
 import com.example.taskboard.dto.UpdateTaskRequest;
 import com.example.taskboard.service.TaskService;
 
 import jakarta.validation.Valid;
 
-/** A4・A5・A6・A9・A10 タスクの登録・変更・削除・読み取り（docs/api.md）。ログイン（A1）は未実装のため、今は誰でも呼べる。 */
+/** A4〜A7・A9・A10 タスクの登録・変更・削除・移動・読み取り（docs/api.md）。ログイン（A1）は未実装のため、今は誰でも呼べる。 */
 @RestController
 @RequestMapping("/api/tasks")
 public class TaskController {
@@ -57,6 +58,13 @@ public class TaskController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void delete(@PathVariable UUID id) {
 		taskService.delete(id);
+	}
+
+	/** A7 移動。columnId の列の beforeId の直前（null なら一番下）へ動かす。成功したら 204 */
+	@PostMapping("/{id}/move")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void move(@PathVariable UUID id, @Valid @RequestBody MoveTaskRequest request) {
+		taskService.move(id, request);
 	}
 
 	/** A10 1件 */

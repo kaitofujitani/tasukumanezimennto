@@ -1,5 +1,6 @@
 package com.example.taskboard.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -7,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.taskboard.dto.CreateTaskRequest;
+import com.example.taskboard.dto.MoveTaskRequest;
 import com.example.taskboard.dto.TaskResponse;
 import com.example.taskboard.dto.UpdateTaskRequest;
 import com.example.taskboard.entity.BoardColumn;
@@ -14,7 +16,7 @@ import com.example.taskboard.entity.Task;
 import com.example.taskboard.repository.BoardColumnRepository;
 import com.example.taskboard.repository.TaskRepository;
 
-/** タスクの読み取り・登録・内容の変更・削除（移動・並べ替えは今後ここに足す） */
+/** タスクの読み取り・登録・内容の変更・削除・移動（並べ替えは今後ここに足す） */
 @Service
 public class TaskService {
 
@@ -88,6 +90,66 @@ public class TaskService {
 		List<Task> remaining = tasks.findByColumnIdOrderByPositionAsc(columnId);
 		for (int i = 0; i < remaining.size(); i++) {
 			remaining.get(i).setPosition(i);
+		}
+	}
+
+	/**
+	 * タスクを columnId の列の、beforeId のタスクの直前へ動かす（beforeId が null なら列の一番下）。
+	 * 動かし元と動かし先の列の position を 0 から振り直す。
+	 * タスク・列・beforeId のタスクがなければ NotFoundException、beforeId のタスクが動かし先の列になければ BadRequestException
+	 */
+	@Transactional
+	public void move(UUID id, MoveTaskRequest request) {
+		Task task = tasks.findById(id)
+				.orElseThrow(() -> new NotFoundException("タスクが見つかりません"));
+		BoardColumn destColumn = columns.findById(request.columnId())
+				.orElseThrow(() -> new NotFoundException("列が見つかりません"));
+		UUID beforeId = request.beforeId();
+		if (id.equals(beforeId)) {
+			// 自分の直前＝今の位置。何も変えない
+			return;
+		}
+		Integer sourceColumnId = task.getColumn().getId();
+
+		// 書き換える前に両方の列の並びを読み、動かすタスクを抜いておく
+		List<Task> dest = new ArrayList<>(tasks.findByColumnIdOrderByPositionAsc(destColumn.getId()));
+		dest.removeIf(t -> t.getId().equals(id));
+		// 同じ列の中で動かすときは dest の振り直しだけでよいので、source は空にしておく
+		List<Task> source = sourceColumnId.equals(destColumn.getId())
+				? new ArrayList<>()
+				: new ArrayList<>(tasks.findByColumnIdOrderByPositionAsc(sourceColumnId));
+
+		int index = dest.size();
+		if (beforeId != null) {
+			index = indexOf(dest, beforeId);
+			if (index < 0) {
+				if (!tasks.existsById(beforeId)) {
+					throw new NotFoundException("beforeId のタスクが見つかりません");
+				}
+				throw new BadRequestException("beforeId のタスクが動かし先の列にありません");
+			}
+		}
+
+		task.setColumn(destColumn);
+		dest.add(index, task);
+		renumber(dest);
+		source.removeIf(t -> t.getId().equals(id));
+		renumber(source);
+	}
+
+	private static int indexOf(List<Task> list, UUID id) {
+		for (int i = 0; i < list.size(); i++) {
+			if (list.get(i).getId().equals(id)) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	/** 並んでいる順に position を 0, 1, 2… と振り直す */
+	private static void renumber(List<Task> list) {
+		for (int i = 0; i < list.size(); i++) {
+			list.get(i).setPosition(i);
 		}
 	}
 
