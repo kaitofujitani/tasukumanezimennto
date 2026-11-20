@@ -32,6 +32,8 @@ class TaskRepositoryTests {
 
 	@Test
 	void タスクを保存して列ごとに読める() {
+		// seed.sql を入れた DB でも結果が決まるよう、既存のタスクを消してから入れる（テスト後に取り消される）
+		tasks.deleteAll();
 		BoardColumn todo = columns.findAllByOrderByPositionAsc().get(0);
 		tasks.save(new Task(todo, "2つ目", 1));
 		tasks.save(new Task(todo, "1つ目", 0));
