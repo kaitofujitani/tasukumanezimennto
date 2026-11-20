@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+内容は [AGENTS.md](AGENTS.md)（Codex 向け）と揃えてある。どちらかを変えたら、もう一方も同じように更新する。
+
 ## 概要
 
 ブラウザだけで動く、Trello 風のカンバン式タスク管理アプリ（固定3列・ドラッグ＆ドロップで移動）。HTML・CSS・JavaScript はすべて [index.html](index.html) にインラインで書かれている。ビルド・パッケージマネージャ・依存ライブラリ・テスト・リンターは存在しない。
