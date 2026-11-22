@@ -7,6 +7,9 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
+    // ポートは 5173 に固定。使われていたら別のポートに逃げず、エラーで止める（CLAUDE.md の「開発用サーバーのポート」）
+    port: 5173,
+    strictPort: true,
     proxy: {
       "/api": "http://localhost:8080",
     },

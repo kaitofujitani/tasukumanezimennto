@@ -23,6 +23,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 公開用のイメージ: リポジトリのルートの `Dockerfile` が画面とサーバーをビルドして 1 つの jar にまとめる（`docker build -t taskboard:local .`）。Render（無料・Docker）と Neon（PostgreSQL）での公開手順は [docs/deploy.md](docs/deploy.md)。待ち受けるポートは環境変数 `PORT`（未設定なら 8080）
 - GitHub Pages で `main` ブランチのルートを公開している: https://kaitofujitani.github.io/tasukumanezimennto/ 。`main` に push すると数分で反映される。
 
+## 開発用サーバーのポート（厳守）
+
+- ポートは画面（Vite）5173・バックエンド（Spring Boot）8080・DB（PostgreSQL）5432 に固定する。ポートが使われていても、`--port 5174`・`PORT=8081`・`server.port=8081`・`-p 5433:5432` のように別のポートで起動してはいけない（`/api` の転送や URL がずれて、動作確認がうまくいかないため）。
+- ポートが使われていたら、`bash .claude/skills/dev-up/free-ports.sh` で使っているプロセス・コンテナを表示してから止め、決まったポートで起動する。止めたものはユーザーに伝える。このプロジェクトの DB（`backend-db-1`）が 5432 を使っているときは、止めずにそのまま使う。
+- 起動・停止の手順は、Claude Code のスキル `/dev-up`（[.claude/skills/dev-up/SKILL.md](.claude/skills/dev-up/SKILL.md)）にまとめてある。止めるときは `bash .claude/skills/dev-up/free-ports.sh --stop` を実行する。
+- 画面は `vite.config.ts` の `strictPort: true` で、5173 が使われていると別のポートに逃げずにエラーで止まる。Claude Code では `.claude/hooks/guard-ports.sh` が、別のポートを指定した起動コマンドを止める。
+
 ## アーキテクチャ
 
 React 版（`frontend/`）は mock/index.html の見た目と動きを移したもの。`App.tsx` がログイン画面とボード画面を切り替え、`components/Board.tsx` がボードのデータを持つ。操作したら先に画面を書き換え（並びの計算は `board.ts`）、そのあと `api.ts` で保存し、失敗したらエラーの帯を出して読み込み直す。見た目は Tailwind CSS（v4）のクラスを各部品の `className` に書く。色は `styles.css` の `@theme` に登録し（`bg-column`・`text-muted`・`border-line` など）、ダークモードは同じファイルの `prefers-color-scheme: dark` で上書きする。背景写真があるときだけ効かせる見た目は、`photo:` を付けたクラスで書く（例: `photo:bg-glass`）。以下は今の localStorage 版（ルートの index.html）の説明。
