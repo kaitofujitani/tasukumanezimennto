@@ -4,6 +4,7 @@
 #   引数なし : 5432 がこのプロジェクトの DB（backend-db-1）なら、そのまま使うので止めない
 #   --stop   : このプロジェクトの DB も含めて、すべて止める（開発用サーバーの停止）
 # 空けられなかったポートがあれば exit 1。
+# 注意: macOS 標準の bash（3.2）は "$pid（" のように変数の直後に全角文字があると変数名の一部と読むので、${pid} のように囲む。
 
 PORTS="5173 8080 5432"
 PROJECT_DB_CONTAINER="backend-db-1"
@@ -32,7 +33,7 @@ free_port() {
 
   for c in $(publishing_containers "$port"); do
     if [ "$c" = "$PROJECT_DB_CONTAINER" ] && ! $STOP_ALL; then
-      echo "[$port] このプロジェクトの DB（$c）が使用中。そのまま使う"
+      echo "[$port] このプロジェクトの DB（${c}）が使用中。そのまま使う"
     else
       echo "[$port] コンテナ $c が使用中 → 止める"
       docker stop "$c" >/dev/null
@@ -43,7 +44,7 @@ free_port() {
   pids=$(listener_pids "$port")
   [ -z "$pids" ] && return
   for pid in $pids; do
-    echo "[$port] PID $pid（$(ps -p "$pid" -o command= | cut -c1-120)）が使用中 → 止める"
+    echo "[$port] PID ${pid}（$(ps -p "$pid" -o command= | cut -c1-120)）が使用中 → 止める"
     kill "$pid" 2>/dev/null
   done
   # 10 秒待っても終わらなければ強制終了する
