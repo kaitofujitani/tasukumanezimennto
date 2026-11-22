@@ -43,7 +43,7 @@ export function Column(props: Props) {
 
   /** マウスの位置より下にある最初のカード（＝落とす位置の直後のカード）の id。なければ null（一番下） */
   function beforeIdAt(y: number): string | null {
-    const cards = listRef.current?.querySelectorAll<HTMLElement>(".card:not(.dragging)") ?? [];
+    const cards = listRef.current?.querySelectorAll<HTMLElement>("[data-id]:not([data-dragging])") ?? [];
     for (const el of cards) {
       const r = el.getBoundingClientRect();
       if (y < r.top + r.height / 2) return el.dataset.id ?? null;
@@ -68,20 +68,22 @@ export function Column(props: Props) {
   }
 
   const isTarget = dropBeforeId !== undefined;
-  const placeholder = <li className="placeholder" aria-hidden="true" />;
+  const placeholder = <li className="mb-2 h-1 rounded-[2px] bg-accent" aria-hidden="true" />;
 
   return (
     <section
-      className={isTarget ? "column over" : "column"}
+      className={`rounded-[10px] border-2 bg-column p-3 photo:bg-glass photo:backdrop-blur-[6px] ${
+        isTarget ? "border-accent" : "border-transparent"
+      }`}
       onDragOver={dragOver}
       onDragLeave={dragLeave}
       onDrop={drop}
     >
-      <h2>
+      <h2 className="mb-2.5 flex justify-between text-base font-bold">
         <span>{column.name}</span>
-        <span className="count">{tasks.length}</span>
+        <span className="font-normal text-muted">{tasks.length}</span>
       </h2>
-      <ul className="cards" ref={listRef}>
+      <ul className="min-h-2" ref={listRef}>
         {tasks.map((t) => (
           <Fragment key={t.id}>
             {isTarget && dropBeforeId === t.id && placeholder}
@@ -97,8 +99,9 @@ export function Column(props: Props) {
         ))}
         {isTarget && dropBeforeId === null && placeholder}
       </ul>
-      <form onSubmit={submit}>
+      <form className="mt-1 flex gap-1.5" onSubmit={submit}>
         <input
+          className="min-w-0 flex-1"
           ref={inputRef}
           placeholder="カードを追加…"
           autoComplete="off"
@@ -106,7 +109,7 @@ export function Column(props: Props) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
-        <button className="primary">追加</button>
+        <button className="border-none bg-accent font-semibold text-white">追加</button>
       </form>
     </section>
   );

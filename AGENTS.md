@@ -25,7 +25,7 @@ This file provides guidance to Codex when working with code in this repository.
 
 ## アーキテクチャ
 
-React 版（`frontend/`）は mock/index.html の見た目と動きを移したもの。`App.tsx` がログイン画面とボード画面を切り替え、`components/Board.tsx` がボードのデータを持つ。操作したら先に画面を書き換え（並びの計算は `board.ts`）、そのあと `api.ts` で保存し、失敗したらエラーの帯を出して読み込み直す。以下は今の localStorage 版（ルートの index.html）の説明。
+React 版（`frontend/`）は mock/index.html の見た目と動きを移したもの。`App.tsx` がログイン画面とボード画面を切り替え、`components/Board.tsx` がボードのデータを持つ。操作したら先に画面を書き換え（並びの計算は `board.ts`）、そのあと `api.ts` で保存し、失敗したらエラーの帯を出して読み込み直す。見た目は Tailwind CSS（v4）のクラスを各部品の `className` に書く。色は `styles.css` の `@theme` に登録し（`bg-column`・`text-muted`・`border-line` など）、ダークモードは同じファイルの `prefers-color-scheme: dark` で上書きする。背景写真があるときだけ効かせる見た目は、`photo:` を付けたクラスで書く（例: `photo:bg-glass`）。以下は今の localStorage 版（ルートの index.html）の説明。
 
 - **状態**: モジュールスコープの `cards` 配列（全カード）と、ドラッグ中のカード ID を持つ `draggingId`、詳細画面で開いているカードを持つ `editing`。
 - **永続化**: `localStorage` のキー `board.v1` に JSON で保存。データ構造を変える場合は互換性のためキーのバージョンを上げるか、`load()` で移行処理を入れること。

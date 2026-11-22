@@ -12,6 +12,9 @@ export const SLOW_NOTICE_MS = 3000;
 /** エラーの帯を消すまでの時間 */
 const BANNER_MS = 5000;
 const SAVE_ERROR = "保存できませんでした。通信状況を確認してください";
+/** 読み込み中・読み込み失敗のお知らせ */
+const STATUS_CLASS =
+  "rounded-[10px] bg-column px-4 py-8 text-center text-muted photo:bg-glass photo:backdrop-blur-[6px]";
 
 type LoadState = "loading" | "slow" | "error" | "ready";
 
@@ -199,13 +202,18 @@ export function Board({ onUnauthorized, onLoggedOut }: Props) {
   }
 
   return (
-    <main>
+    <main className="mx-auto max-w-[1100px] px-4 pt-8 pb-12">
       {banner && (
-        <div className="banner" role="alert">
+        // エラーの帯（画面の上部に出す）
+        <div
+          className="fixed top-3 left-1/2 z-10 flex w-max max-w-[calc(100vw-32px)] -translate-x-1/2 items-center gap-3 rounded-lg bg-danger px-4 py-2.5 text-white shadow-[0_4px_12px_rgb(0_0_0/.25)]"
+          role="alert"
+        >
           <span>{banner.message}</span>
           {banner.retry && (
             <button
               type="button"
+              className="border-none bg-white px-2.5 py-1 font-semibold text-[#b91c1c]"
               onClick={() => {
                 setBanner(null);
                 load(true);
@@ -216,9 +224,9 @@ export function Board({ onUnauthorized, onLoggedOut }: Props) {
           )}
         </div>
       )}
-      <header>
-        <h1>ボード</h1>
-        <div className="toolbar">
+      <header className="mb-5 flex flex-wrap items-center justify-between gap-3 photo:rounded-[10px] photo:bg-glass photo:px-3 photo:py-2.5 photo:backdrop-blur-[6px]">
+        <h1 className="text-2xl font-bold">ボード</h1>
+        <div className="flex flex-wrap gap-1.5">
           <select aria-label="並べ方" value={sortBy} onChange={(e) => setSortBy(e.target.value as SortBy)}>
             <option value="priority">優先度順</option>
             <option value="due">期限順</option>
@@ -233,10 +241,10 @@ export function Board({ onUnauthorized, onLoggedOut }: Props) {
         </div>
       </header>
 
-      {loadState === "slow" && <p className="status">サーバーを起動しています。1〜2分ほどかかることがあります</p>}
-      {loadState === "error" && <p className="status">読み込めませんでした</p>}
+      {loadState === "slow" && <p className={STATUS_CLASS}>サーバーを起動しています。1〜2分ほどかかることがあります</p>}
+      {loadState === "error" && <p className={STATUS_CLASS}>読み込めませんでした</p>}
       {loadState === "ready" && (
-        <div className="board">
+        <div className="grid grid-cols-3 items-start gap-4 max-[720px]:grid-cols-1">
           {columns.map((c) => (
             <Column
               key={c.id}

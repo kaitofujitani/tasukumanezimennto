@@ -29,9 +29,18 @@ export function App() {
 
   return (
     <>
-      <div className="bg" style={background ? { backgroundImage: `url("${background.src}")` } : undefined} />
+      {/* iPhone の Safari でも固定表示されるよう、background-attachment: fixed ではなく固定配置の要素に敷く */}
+      <div
+        className="fixed inset-0 -z-1 bg-cover bg-center bg-no-repeat opacity-0 transition-opacity duration-600 photo:opacity-100"
+        style={background ? { backgroundImage: `url("${background.src}")` } : undefined}
+      />
       {background && (
-        <a className="credit" href={background.url} target="_blank" rel="noopener noreferrer">
+        <a
+          className="fixed right-2 bottom-1.5 text-[.7rem] text-white no-underline [text-shadow:0_1px_2px_rgb(0_0_0/.8)] hover:underline"
+          href={background.url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           {background.credit}
         </a>
       )}

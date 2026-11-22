@@ -151,7 +151,7 @@ describe("ボード画面", () => {
     await waitFor(() =>
       expect(server.calls).toContainEqual({ method: "POST", path: "/api/tasks", body: { columnId: 1, title: "新しいタスク" } }),
     );
-    const titles = within(todo).getAllByRole("listitem").map((li) => li.querySelector(".title")?.textContent);
+    const titles = within(todo).getAllByRole("listitem").map((li) => within(li).getByTestId("task-title").textContent);
     expect(titles).toEqual(["資料を作る", "本を返す", "新しいタスク"]);
     expect(input).toHaveValue("");
     expect(input).toHaveFocus();
@@ -199,7 +199,7 @@ describe("ボード画面", () => {
     const user = userEvent.setup();
     render(<App />);
 
-    expect(await screen.findByText("読み込めませんでした", { selector: ".status" })).toBeInTheDocument();
+    expect(await screen.findByText("読み込めませんでした", { selector: "p" })).toBeInTheDocument();
     delete server.override["GET /api/board"];
     await user.click(screen.getByRole("button", { name: "再読み込み" }));
     expect(await screen.findByText("資料を作る")).toBeInTheDocument();
@@ -218,7 +218,7 @@ describe("ボード画面", () => {
     await user.click(screen.getByRole("button", { name: "並べ替え" }));
 
     await waitFor(() => {
-      const titles = within(todo).getAllByRole("listitem").map((li) => li.querySelector(".title")?.textContent);
+      const titles = within(todo).getAllByRole("listitem").map((li) => within(li).getByTestId("task-title").textContent);
       expect(titles).toEqual(["本を返す", "資料を作る"]);
     });
     expect(server.calls).toContainEqual({ method: "POST", path: "/api/tasks/sort", body: { by: "due" } });

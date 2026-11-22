@@ -5,6 +5,11 @@ import type { Column, Priority, Task, TaskPatch } from "../types";
 /** タイトルと説明は、入力がこの時間止まったらまとめて保存する */
 export const SAVE_DELAY_MS = 500;
 
+/** 項目名（薄い色）と入力欄（*:text-fg で通常の色）を縦に並べる */
+const LABEL_CLASS = "grid gap-1 text-[.85rem] text-muted *:text-fg";
+/** 2つの項目を横に並べる行 */
+const ROW_CLASS = "grid grid-cols-2 items-end gap-3";
+
 interface Props {
   task: Task;
   columns: Column[];
@@ -80,7 +85,10 @@ export function TaskDetail({ task, columns, canMoveUp, canMoveDown, ...props }: 
   }
 
   return (
+    // 余白は form 側に持たせ、dialog 自体のクリック＝背景のクリックとして扱う。
+    // Tailwind は全要素の margin を 0 にするので、m-auto で画面の中央に置く
     <dialog
+      className="m-auto w-[min(480px,calc(100vw-32px))] rounded-xl border border-line bg-bg p-0 text-fg backdrop:bg-black/40"
       ref={dialogRef}
       aria-labelledby="detail-heading"
       onClose={() => {
@@ -92,9 +100,11 @@ export function TaskDetail({ task, columns, canMoveUp, canMoveDown, ...props }: 
         if (e.target === e.currentTarget) close();
       }}
     >
-      <form className="detail-form" onSubmit={submit}>
-        <h2 id="detail-heading">カードの詳細</h2>
-        <label>
+      <form className="grid gap-3 p-5" onSubmit={submit}>
+        <h2 id="detail-heading" className="text-[1.1rem] font-bold">
+          カードの詳細
+        </h2>
+        <label className={LABEL_CLASS}>
           タイトル
           <input
             value={title}
@@ -106,9 +116,10 @@ export function TaskDetail({ task, columns, canMoveUp, canMoveDown, ...props }: 
             }}
           />
         </label>
-        <label>
+        <label className={LABEL_CLASS}>
           説明
           <textarea
+            className="resize-y"
             rows={4}
             value={description}
             onChange={(e) => {
@@ -117,8 +128,8 @@ export function TaskDetail({ task, columns, canMoveUp, canMoveDown, ...props }: 
             }}
           />
         </label>
-        <div className="row">
-          <label>
+        <div className={ROW_CLASS}>
+          <label className={LABEL_CLASS}>
             優先度
             <select value={task.priority} onChange={(e) => props.onSave({ priority: e.target.value as Priority })}>
               <option value="high">高</option>
@@ -126,7 +137,7 @@ export function TaskDetail({ task, columns, canMoveUp, canMoveDown, ...props }: 
               <option value="low">低</option>
             </select>
           </label>
-          <label>
+          <label className={LABEL_CLASS}>
             期限
             <input
               type="date"
@@ -135,8 +146,8 @@ export function TaskDetail({ task, columns, canMoveUp, canMoveDown, ...props }: 
             />
           </label>
         </div>
-        <div className="row">
-          <label>
+        <div className={ROW_CLASS}>
+          <label className={LABEL_CLASS}>
             列
             <select value={task.columnId} onChange={(e) => props.onMoveToColumn(Number(e.target.value))}>
               {columns.map((c) => (
@@ -146,7 +157,7 @@ export function TaskDetail({ task, columns, canMoveUp, canMoveDown, ...props }: 
               ))}
             </select>
           </label>
-          <div className="order">
+          <div className="flex gap-1.5 *:flex-1">
             <button type="button" disabled={!canMoveUp} onClick={props.onMoveUp}>
               上へ
             </button>
@@ -155,11 +166,11 @@ export function TaskDetail({ task, columns, canMoveUp, canMoveDown, ...props }: 
             </button>
           </div>
         </div>
-        <div className="actions">
-          <button type="button" className="danger" onClick={remove}>
+        <div className="mt-1 flex justify-between">
+          <button type="button" className="border-danger bg-transparent text-danger" onClick={remove}>
             削除
           </button>
-          <button className="primary">閉じる</button>
+          <button className="border-none bg-accent font-semibold text-white">閉じる</button>
         </div>
       </form>
     </dialog>
