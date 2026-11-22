@@ -21,12 +21,20 @@ export function TaskCard({ task, dragging, onOpen, onDelete, onDragStart, onDrag
     onDragStart();
   }
 
-  const className = ["card", dragging && "dragging", pending && "pending"].filter(Boolean).join(" ");
+  const className = [
+    "mb-2 flex items-center gap-2 rounded-lg border border-line bg-card px-3 py-2.5",
+    pending ? "cursor-default opacity-60" : "cursor-grab",
+    dragging && "opacity-40",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <li
       className={className}
       data-id={task.id}
+      // ドラッグ中のカードの印。落とす位置を求めるとき（Column の beforeIdAt）に除く
+      data-dragging={dragging || undefined}
       draggable={!pending}
       tabIndex={0}
       onClick={() => !pending && onOpen()}
@@ -36,16 +44,18 @@ export function TaskCard({ task, dragging, onOpen, onDelete, onDragStart, onDrag
       onDragStart={dragStart}
       onDragEnd={onDragEnd}
     >
-      <div className="body">
-        <div className="title">{task.title}</div>
-        <div className="meta">
+      <div className="min-w-0 flex-1">
+        <div className="wrap-break-word" data-testid="task-title">
+          {task.title}
+        </div>
+        <div className="mt-1 flex gap-2.5 text-[.8rem] text-muted">
           <span>優先度: {PRIORITY_LABEL[task.priority]}</span>
           {task.due && <span>期限: {task.due.replaceAll("-", "/")}</span>}
         </div>
       </div>
       <button
         type="button"
-        className="del"
+        className="cursor-pointer border-none bg-transparent px-1.5 py-0.5 text-[1.1rem] text-muted hover:text-danger"
         aria-label={`「${task.title}」を削除`}
         disabled={pending}
         onClick={(e) => {

@@ -45,10 +45,10 @@ flowchart LR
 │   │   ├── backgrounds.ts             背景写真の一覧
 │   │   ├── types.ts                   API でやりとりするデータの型
 │   │   ├── components/                画面の部品（LoginPage・Board・Column・TaskCard・TaskDetail）
-│   │   └── styles.css
+│   │   └── styles.css                 Tailwind CSS の読み込みと、色の登録・要素の基本の見た目
 │   ├── public/images/                 背景写真
 │   ├── package.json                   使うライブラリと、開発・ビルドのコマンド
-│   └── vite.config.ts                 開発中は /api を Spring Boot に転送する設定
+│   └── vite.config.ts                 開発中は /api を Spring Boot に転送する設定と、Tailwind CSS の設定
 ├── backend/                           サーバー（Java + Spring Boot）
 │   ├── src/main/java/com/example/taskboard/
 │   │   ├── TaskboardApplication.java  サーバーの起点

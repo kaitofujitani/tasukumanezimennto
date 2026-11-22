@@ -32,12 +32,16 @@ export function LoginPage({ onLoggedIn }: Props) {
   }
 
   return (
-    <section className="login-screen">
-      <form className="login-card" onSubmit={submit}>
-        <h1>ボード</h1>
-        <label>
+    <section className="grid min-h-screen place-items-center p-4">
+      <form
+        className="grid w-[min(360px,100%)] gap-3 rounded-xl bg-column p-6 photo:bg-glass photo:backdrop-blur-[6px]"
+        onSubmit={submit}
+      >
+        <h1 className="text-2xl font-bold">ボード</h1>
+        <label className="grid gap-1 text-[.85rem] text-muted">
           パスワード
           <input
+            className="text-fg"
             ref={inputRef}
             type="password"
             autoComplete="current-password"
@@ -47,10 +51,13 @@ export function LoginPage({ onLoggedIn }: Props) {
           />
         </label>
         {/* パスワードが空のあいだはログインボタンを押せない */}
-        <button className="primary" disabled={!password || sending}>
+        <button
+          className="justify-self-end border-none bg-accent font-semibold text-white"
+          disabled={!password || sending}
+        >
           ログイン
         </button>
-        {error && <p className="login-error">{error}</p>}
+        {error && <p className="text-[.9rem] text-danger">{error}</p>}
       </form>
     </section>
   );
