@@ -35,22 +35,17 @@
 
 ## 使っている技術
 
-| 区分 | 技術 | バージョン |
-|---|---|---|
-| 画面 | Node.js | 24（LTS 版） |
-| | npm（パッケージ管理） | 11 |
-| | React・React DOM | 19.3.1 |
-| | TypeScript | 7.0.2 |
-| | Vite | 8.3.8 |
-| | Tailwind CSS | 4.3.5 |
-| | Vitest・React Testing Library（テスト） | 5.1.1・16.3.3 |
-| サーバー | Java | 25（LTS 版） |
-| | Spring Boot（Spring Security・Spring Data JPA・Flyway） | 4.1.2 |
-| | Gradle（ビルドツール） | 9.9.1 |
-| データベース | PostgreSQL（開発は Docker、本番は Neon） | 18 |
-| 公開 | Docker（画面とサーバーを1つの jar にまとめる）・Render | — |
+| 区分 | 技術 |
+|---|---|
+| フロントエンド（画面） | React・TypeScript・Vite・Tailwind CSS |
+| | Vitest・React Testing Library（テスト） |
+| バックエンド（サーバー） | Java・Spring Boot（Spring Security・Spring Data JPA・Flyway） |
+| | Gradle（ビルドツール） |
+| データベース | PostgreSQL（開発は Docker、本番は Neon） |
+| 開発ツール | Node.js・npm（パッケージ管理）・Git・GitHub |
+| 公開 | Docker（画面とサーバーを1つの jar にまとめる）・Render |
 
-2026-11-23 時点のバージョンです。それぞれのバージョンを決めているファイルは [技術スタック選定書の「3.4 使っているバージョン」](docs/tech-stack.md#34-使っているバージョン) に、技術を選んだ理由は同じ資料の前半にまとめています。バージョンを上げたときは、両方の表を直してください。
+それぞれのバージョンと、それを決めているファイルは [技術スタック選定書の「3.4 使っているバージョン」](docs/tech-stack.md#34-使っているバージョン) にまとめています。技術を選んだ理由は同じ資料の前半にあります。バージョンを上げたときは、3.4 の表だけを直してください。
 
 ## フォルダ構成
 
