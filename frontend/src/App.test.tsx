@@ -167,16 +167,30 @@ describe("ボード画面", () => {
     expect(server.calls.some((c) => c.path === "/api/tasks")).toBe(false);
   });
 
-  it("×で確認なしに削除する", async () => {
+  it("×で確認してから削除する", async () => {
     const server = fakeServer();
     const user = userEvent.setup();
     render(<App />);
     await screen.findByText("本を返す");
 
     await user.click(screen.getByRole("button", { name: "「本を返す」を削除" }));
+    expect(window.confirm).toHaveBeenCalledWith("「本を返す」を削除しますか？");
     expect(screen.queryByText("本を返す")).not.toBeInTheDocument();
-    expect(window.confirm).not.toHaveBeenCalled();
     expect(server.calls.some((c) => c.method === "DELETE")).toBe(true);
+    // 詳細画面は開かない
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("×の確認でキャンセルしたら削除しない", async () => {
+    vi.mocked(window.confirm).mockReturnValue(false);
+    const server = fakeServer();
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText("本を返す");
+
+    await user.click(screen.getByRole("button", { name: "「本を返す」を削除" }));
+    expect(screen.getByText("本を返す")).toBeInTheDocument();
+    expect(server.calls.some((c) => c.method === "DELETE")).toBe(false);
   });
 
   it("保存に失敗したらエラーの帯を出し、ボードを読み込み直す", async () => {
