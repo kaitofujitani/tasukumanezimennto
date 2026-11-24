@@ -135,7 +135,7 @@ describe("ボード画面", () => {
 
     const todo = await todoColumn();
     expect(within(todo).getByText("1")).toBeInTheDocument();
-    expect(within(todo).getByText("優先度: 高")).toBeInTheDocument();
+    expect(within(todo).getByLabelText("優先度: 高")).toHaveTextContent("高");
     expect(within(todo).getByText("期限: 2026/11/25")).toBeInTheDocument();
   });
 
@@ -247,7 +247,7 @@ describe("タスク詳細画面", () => {
         { method: "PATCH", path: "/api/tasks/%E8%B3%87%E6%96%99%E3%82%92%E4%BD%9C%E3%82%8B", body: { title: "見積書を作る" } },
       ]),
     );
-    expect(screen.getByText("優先度: 高")).toBeInTheDocument();
+    expect(screen.getByLabelText("優先度: 高")).toBeInTheDocument();
   });
 
   it("閉じるときに、まだ保存していない説明を保存する", async () => {
@@ -282,13 +282,15 @@ describe("タスク詳細画面", () => {
     expect(within(dialog).getByRole("button", { name: "上へ" })).toBeDisabled();
   });
 
-  it("列を変えると、その列の一番下へ動かす", async () => {
+  it("ステータスのボタンを押すと、その列の一番下へ動かす", async () => {
     const server = fakeServer();
     const user = userEvent.setup();
     render(<App />);
     await user.click(await screen.findByText("資料を作る"));
+    const status = within(screen.getByRole("dialog")).getByRole("group", { name: "ステータス" });
+    expect(within(status).getByRole("button", { name: "未着手" })).toHaveAttribute("aria-pressed", "true");
 
-    await user.selectOptions(within(screen.getByRole("dialog")).getByLabelText("列"), "2");
+    await user.click(within(status).getByRole("button", { name: "進行中" }));
     expect(server.calls).toContainEqual({
       method: "POST", path: "/api/tasks/%E8%B3%87%E6%96%99%E3%82%92%E4%BD%9C%E3%82%8B/move", body: { columnId: 2, beforeId: null },
     });

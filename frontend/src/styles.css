@@ -13,6 +13,10 @@
   --color-accent: #2563eb;
   --color-danger: #dc2626;
   --color-glass: rgb(236 238 241 / 0.82); /* 背景写真の上に置く半透明の板 */
+  /* 優先度のバッジの地の色（文字は白）。ダークモードでも同じ色を使う */
+  --color-prio-high: #dc2626;
+  --color-prio-mid: #ca8a04;
+  --color-prio-low: #2563eb;
 }
 @media (prefers-color-scheme: dark) {
   :root {
