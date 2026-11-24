@@ -2,6 +2,10 @@
 
 やることを「未着手」「進行中」「完了」の3つの列に並べ、ドラッグ＆ドロップで動かして管理する、Trello 風のタスク管理アプリです。PC とスマートフォンのどちらからでも、同じボードを見て更新できることを目指しています。
 
+![ボード画面（サーバー版）](docs/images/board.jpg)
+
+*サーバー版のボード画面。カードは見本のデータ（`backend/dev/seed.sql`）。背景写真: Wilfredor / CC0 / Wikimedia Commons*
+
 - 公開中の試作版（ブラウザだけで動く版）: https://kaitofujitani.github.io/tasukumanezimennto/
 - 要件と設計の資料: [docs/](docs/README.md)
 
@@ -58,7 +62,7 @@
 ├── frontend/      サーバー版の画面（React + TypeScript + Vite）
 ├── backend/       サーバー版のサーバー（Java + Spring Boot）と開発用 DB の設定
 ├── Dockerfile     公開用のイメージを作る（画面とサーバーを1つにまとめる）
-└── docs/          要件定義書・設計資料
+└── docs/          要件定義書・設計資料（images/ に README の画面の画像）
 ```
 
 サーバーのフォルダの中身は [API設計書の「1.3 フォルダ構成」](docs/api.md#13-フォルダ構成) を参照してください。
