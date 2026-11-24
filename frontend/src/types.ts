@@ -34,3 +34,6 @@ export interface Board {
 export type TaskPatch = Partial<Pick<Task, "title" | "description" | "priority" | "due">>;
 
 export const PRIORITY_LABEL: Record<Priority, string> = { high: "高", mid: "中", low: "低" };
+
+/** 優先度の色（styles.css の --color-prio-*）。白い文字と組み合わせて使う */
+export const PRIORITY_BG: Record<Priority, string> = { high: "bg-prio-high", mid: "bg-prio-mid", low: "bg-prio-low" };

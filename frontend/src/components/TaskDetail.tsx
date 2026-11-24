@@ -1,6 +1,6 @@
 // S2 タスク詳細画面（docs/screens.md の 2.3）。ボード画面の上に <dialog> で重ねて表示する
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import type { Column, Priority, Task, TaskPatch } from "../types";
+import { PRIORITY_BG, type Column, type Priority, type Task, type TaskPatch } from "../types";
 
 /** タイトルと説明は、入力がこの時間止まったらまとめて保存する */
 export const SAVE_DELAY_MS = 500;
@@ -131,10 +131,15 @@ export function TaskDetail({ task, columns, canMoveUp, canMoveDown, ...props }: 
         <div className={ROW_CLASS}>
           <label className={LABEL_CLASS}>
             優先度
-            <select value={task.priority} onChange={(e) => props.onSave({ priority: e.target.value as Priority })}>
-              <option value="high">高</option>
-              <option value="mid">中</option>
-              <option value="low">低</option>
+            {/* 選んでいる優先度の色で表示する。開いた一覧は通常の色に戻して読みやすくする */}
+            <select
+              className={`border-transparent font-semibold text-white! ${PRIORITY_BG[task.priority]}`}
+              value={task.priority}
+              onChange={(e) => props.onSave({ priority: e.target.value as Priority })}
+            >
+              <option className="bg-card font-normal text-fg" value="high">高</option>
+              <option className="bg-card font-normal text-fg" value="mid">中</option>
+              <option className="bg-card font-normal text-fg" value="low">低</option>
             </select>
           </label>
           <label className={LABEL_CLASS}>
@@ -147,16 +152,26 @@ export function TaskDetail({ task, columns, canMoveUp, canMoveDown, ...props }: 
           </label>
         </div>
         <div className={ROW_CLASS}>
-          <label className={LABEL_CLASS}>
-            列
-            <select value={task.columnId} onChange={(e) => props.onMoveToColumn(Number(e.target.value))}>
-              {columns.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {/* ステータス＝列。今の列のボタンを青くし、ほかを押すとその列の一番下へ動かす */}
+          <div className="grid gap-1 text-[.85rem] text-muted" role="group" aria-labelledby="detail-status">
+            <span id="detail-status">ステータス</span>
+            <div className="flex gap-1.5">
+              {columns.map((c) => {
+                const current = c.id === task.columnId;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`flex-1 px-1 ${current ? "border-accent bg-accent font-semibold text-white" : "text-fg"}`}
+                    aria-pressed={current}
+                    onClick={() => !current && props.onMoveToColumn(c.id)}
+                  >
+                    {c.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <div className="flex gap-1.5 *:flex-1">
             <button type="button" disabled={!canMoveUp} onClick={props.onMoveUp}>
               上へ
