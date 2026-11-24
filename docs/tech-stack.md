@@ -2,7 +2,9 @@
 
 [要件定義書](requirements.md) をもとに、アプリをどんな技術で作るかと、その理由をまとめた資料です。
 
-> 状態：**確定**（2026-11-17 更新。お客さまのご指定に合わせて、サーバーを Java + Spring Boot、画面を React に変更。2026-11-23 に、使っているバージョンの一覧（3.4）を追加）
+> 状態：**確定**（2026-11-17 更新。お客さまのご指定に合わせて、サーバーを Java + Spring Boot、画面を React に変更。2026-11-23 に、使っているバージョンの一覧（3.4）を追加。2026-11-24 に、その一覧をフロントエンド・バックエンド・データベース・開発ツールの区分に並べ替え）
+
+使っている技術とバージョンだけを見たいときは [3.4 使っているバージョン](#34-使っているバージョン) へ。
 
 ---
 
@@ -87,20 +89,22 @@ flowchart LR
 
 | 区分 | ツール | バージョン | 決めている場所 |
 |---|---|---|---|
-| サーバー | Java | 25（LTS 版） | `backend/build.gradle` の `toolchain`、`Dockerfile` の `eclipse-temurin:25` |
-| | Spring Boot | 4.1.2 | `backend/build.gradle` の `plugins` |
-| | Gradle | 9.9.1 | `backend/gradle/wrapper/gradle-wrapper.properties`（`./gradlew` を使えば、この版が自動で使われる） |
-| | Flyway・Spring Security など Spring の部品 | Spring Boot 4.1.2 に合わせた版 | 個別には指定せず、Spring Boot に任せている |
-| データベース | PostgreSQL（開発用） | 18（確認時点では 18.7） | `backend/compose.yaml` の `postgres:18`。18 の中の細かい版は、イメージを取り直したときに上がる |
-| | PostgreSQL（本番・Neon） | Neon で選べる中で最新のもの | Neon の管理画面（[公開手順書](deploy.md)） |
-| 画面 | Node.js | 24（LTS 版。確認時点では 24.22.3） | `Dockerfile` の `node:24-alpine`（公開用のビルドで使う） |
-| | npm | 11（確認時点では 11.19.1） | 指定していない。Node.js に付いてくるものを使う |
-| | React・React DOM | 19.3.1 | `frontend/package.json`（細かい版は `package-lock.json` で固定） |
+| フロントエンド（画面） | React・React DOM | 19.3.1 | `frontend/package.json`（細かい版は `package-lock.json` で固定） |
 | | TypeScript | 7.0.2 | 同上 |
 | | Vite | 8.3.8 | 同上 |
 | | Tailwind CSS | 4.3.5 | 同上 |
 | | Vitest | 5.1.1 | 同上 |
 | | React Testing Library | 16.3.3 | 同上 |
+| バックエンド（サーバー） | Java | 25（LTS 版） | `backend/build.gradle` の `toolchain`、`Dockerfile` の `eclipse-temurin:25` |
+| | Spring Boot | 4.1.2 | `backend/build.gradle` の `plugins` |
+| | Gradle | 9.9.1 | `backend/gradle/wrapper/gradle-wrapper.properties`（`./gradlew` を使えば、この版が自動で使われる） |
+| | Flyway・Spring Security など Spring の部品 | Spring Boot 4.1.2 に合わせた版 | 個別には指定せず、Spring Boot に任せている |
+| データベース | PostgreSQL（開発用） | 18（確認時点では 18.7） | `backend/compose.yaml` の `postgres:18`。18 の中の細かい版は、イメージを取り直したときに上がる |
+| | PostgreSQL（本番・Neon） | Neon で選べる中で最新のもの | Neon の管理画面（[公開手順書](deploy.md)） |
+| 開発ツール | Node.js | 24（LTS 版。確認時点では 24.22.3） | `Dockerfile` の `node:24-alpine`（公開用のビルドで使う） |
+| | npm | 11（確認時点では 11.19.1） | 指定していない。Node.js に付いてくるものを使う |
+| | Git | 指定なし（確認時点では 2.54.0） | 指定していない。開発する人のパソコンに入っているものを使う |
+| | GitHub | —（Web のサービスなので版はない） | — |
 
 ---
 
