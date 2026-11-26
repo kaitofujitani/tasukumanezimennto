@@ -86,7 +86,9 @@ export function TaskDetail({ task, columns, canMoveUp, canMoveDown, ...props }: 
 
   return (
     // 余白は form 側に持たせ、dialog 自体のクリック＝背景のクリックとして扱う。
-    // Tailwind は全要素の margin を 0 にするので、m-auto で画面の中央に置く
+    // Tailwind は全要素の margin を 0 にするので、m-auto で画面の中央に置く。
+    // 背景のクリックで閉じる操作は、キーボードでは Esc（ブラウザ標準）が同じ働きをするので、キー操作は付けない
+    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
     <dialog
       className="m-auto w-[min(480px,calc(100vw-32px))] rounded-xl border border-line bg-bg p-0 text-fg backdrop:bg-black/40"
       ref={dialogRef}
@@ -153,8 +155,8 @@ export function TaskDetail({ task, columns, canMoveUp, canMoveDown, ...props }: 
         </div>
         <div className={ROW_CLASS}>
           {/* ステータス＝列。今の列のボタンを青くし、ほかを押すとその列の一番下へ動かす */}
-          <div className="grid gap-1 text-[.85rem] text-muted" role="group" aria-labelledby="detail-status">
-            <span id="detail-status">ステータス</span>
+          <fieldset className="min-w-0 text-[.85rem] text-muted">
+            <legend className="mb-1">ステータス</legend>
             <div className="flex gap-1.5">
               {columns.map((c) => {
                 const current = c.id === task.columnId;
@@ -171,7 +173,7 @@ export function TaskDetail({ task, columns, canMoveUp, canMoveDown, ...props }: 
                 );
               })}
             </div>
-          </div>
+          </fieldset>
           <div className="flex gap-1.5 *:flex-1">
             <button type="button" disabled={!canMoveUp} onClick={props.onMoveUp}>
               上へ

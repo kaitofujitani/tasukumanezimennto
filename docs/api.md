@@ -47,7 +47,8 @@ flowchart LR
 │   │   ├── components/                画面の部品（LoginPage・Board・Column・TaskCard・TaskDetail）
 │   │   └── styles.css                 Tailwind CSS の読み込みと、色の登録・要素の基本の見た目
 │   ├── public/images/                 背景写真
-│   ├── package.json                   使うライブラリと、開発・ビルドのコマンド
+│   ├── package.json                   使うライブラリと、開発・ビルド・テスト・lint のコマンド
+│   ├── .oxlintrc.json                 lint（oxlint）の設定
 │   └── vite.config.ts                 開発中は /api を Spring Boot に転送する設定と、Tailwind CSS の設定
 ├── backend/                           サーバー（Java + Spring Boot）
 │   ├── src/main/java/com/example/taskboard/
@@ -64,6 +65,7 @@ flowchart LR
 │   │       ├── V1__create_tables.sql  テーブルの作成と初期データ（列3つ）
 │   │       └── V2__create_session_tables.sql  ログイン状態のテーブル（Spring Session の SQL を写したもの）
 │   ├── src/test/java/                 テスト
+│   ├── config/checkstyle/             書き方のチェック（Checkstyle）の設定
 │   └── build.gradle                   使うライブラリとビルドの設定
 ├── Dockerfile                         画面をビルドしてサーバーに入れ、1つのアプリにまとめる
 └── docs/                              設計資料

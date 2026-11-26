@@ -240,6 +240,22 @@ describe("ボード画面", () => {
 });
 
 describe("タスク詳細画面", () => {
+  it.each(["{Enter}", " "])("カードはキーボードで選んで %s でも開ける", async (key) => {
+    fakeServer();
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByText("資料を作る");
+
+    // 1枚目のカードの「開く」部分まで Tab で進む（並べ方・並べ替え・ログアウトの次）
+    for (let i = 0; i < 4; i++) await user.tab();
+    expect(document.activeElement).toHaveAttribute("role", "button");
+    expect(document.activeElement).toHaveTextContent("資料を作る");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await user.keyboard(key);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
   it("優先度と期限は変えたときに、タイトルは入力が止まってから保存する", async () => {
     const server = fakeServer();
     const user = userEvent.setup();

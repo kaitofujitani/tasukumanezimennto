@@ -22,7 +22,7 @@ export function TaskCard({ task, dragging, onOpen, onDelete, onDragStart, onDrag
   }
 
   const className = [
-    "group mb-2 flex items-center gap-2 rounded-lg border border-line bg-card px-3 py-2.5",
+    "group mb-2 flex items-center gap-2 rounded-lg border border-line bg-card pr-1.5",
     pending ? "cursor-default opacity-60" : "cursor-grab",
     dragging && "opacity-40",
   ]
@@ -35,16 +35,26 @@ export function TaskCard({ task, dragging, onOpen, onDelete, onDragStart, onDrag
       data-id={task.id}
       // ドラッグ中のカードの印。落とす位置を求めるとき（Column の beforeIdAt）に除く
       data-dragging={dragging || undefined}
-      draggable={!pending}
-      tabIndex={0}
-      onClick={() => !pending && onOpen()}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" && e.target === e.currentTarget && !pending) onOpen();
-      }}
-      onDragStart={dragStart}
-      onDragEnd={onDragEnd}
     >
-      <div className="min-w-0 flex-1">
+      {/* 詳細画面を開く・ドラッグでつかむ部分。li は一覧の項目のままにし、押せる部分をこの要素に分ける。
+          ×ボタンはボタンの中に入れられないので、この要素の隣に置く。
+          <button> にしないのは、Firefox では <button> をドラッグできないため */}
+      <div
+        className="min-w-0 flex-1 rounded-lg px-3 py-2.5"
+        // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role
+        role="button"
+        tabIndex={pending ? -1 : 0}
+        aria-disabled={pending || undefined}
+        onClick={() => !pending && onOpen()}
+        onKeyDown={(e) => {
+          if (pending || (e.key !== "Enter" && e.key !== " ")) return;
+          e.preventDefault(); // Space で画面がスクロールしないようにする
+          onOpen();
+        }}
+        draggable={!pending}
+        onDragStart={dragStart}
+        onDragEnd={onDragEnd}
+      >
         <div className="wrap-break-word" data-testid="task-title">
           {task.title}
         </div>
@@ -65,8 +75,7 @@ export function TaskCard({ task, dragging, onOpen, onDelete, onDragStart, onDrag
         className="cursor-pointer border-none bg-transparent px-1.5 py-0.5 text-[1.1rem] text-muted group-focus-within:opacity-100 group-hover:opacity-100 hover:text-danger [@media(hover:hover)]:opacity-0"
         aria-label={`「${task.title}」を削除`}
         disabled={pending}
-        onClick={(e) => {
-          e.stopPropagation(); // カードのクリック（詳細画面を開く）まで伝わらないようにする
+        onClick={() => {
           // 元に戻せないので、詳細画面の「削除」と同じく確認してから消す
           if (confirm(`「${task.title}」を削除しますか？`)) onDelete();
         }}

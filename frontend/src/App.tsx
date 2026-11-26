@@ -17,13 +17,15 @@ export function App() {
   useEffect(() => {
     const pick = BACKGROUNDS[Math.floor(Math.random() * BACKGROUNDS.length)];
     const img = new Image();
-    img.onload = () => {
+    const onLoad = () => {
       setBackground(pick);
       document.body.classList.add("has-bg");
     };
+    img.addEventListener("load", onLoad);
     img.src = pick.src;
     return () => {
-      img.onload = null;
+      img.removeEventListener("load", onLoad);
+      document.body.classList.remove("has-bg");
     };
   }, []);
 

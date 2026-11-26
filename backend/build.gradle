@@ -2,6 +2,10 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.1.2'
 	id 'io.spring.dependency-management' version '1.1.7'
+	// 静的チェック。./gradlew check（テストも動く）か、DB なしで動く次のコマンドで確かめる
+	// ./gradlew checkstyleMain checkstyleTest compileJava compileTestJava
+	id 'checkstyle'
+	id 'net.ltgt.errorprone' version '5.2.0'
 }
 
 group = 'com.example'
@@ -30,8 +34,23 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	errorprone 'com.google.errorprone:error_prone_core:2.53.0'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+// Error Prone：コンパイルのときに、よくあるバグの書き方を見つける。警告もエラーとして扱い、ビルドを止める
+tasks.withType(JavaCompile).configureEach {
+	options.compilerArgs += ['-Werror']
+	options.errorprone.disableWarningsInGeneratedCode = true
+	// テストメソッドの名前は日本語で書いているので、識別子の日本語は許す
+	options.errorprone.disable('UnicodeInCode')
+}
+
+// Checkstyle：書き方のチェック。設定は config/checkstyle/checkstyle.xml。違反が1つでもあればビルドを止める
+checkstyle {
+	toolVersion = '14.4.0'
+	maxWarnings = 0
 }
