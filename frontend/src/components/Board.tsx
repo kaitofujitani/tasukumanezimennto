@@ -244,7 +244,8 @@ export function Board({ onUnauthorized, onLoggedOut }: Props) {
       {loadState === "slow" && <p className={STATUS_CLASS}>サーバーを起動しています。1〜2分ほどかかることがあります</p>}
       {loadState === "error" && <p className={STATUS_CLASS}>読み込めませんでした</p>}
       {loadState === "ready" && (
-        <div className="grid grid-cols-3 items-start gap-4 max-[720px]:grid-cols-1">
+        // 720px 以下で縦に並べる（画面設計書）。max-[N] は「N 未満」なので 721px と書く
+        <div className="grid grid-cols-3 items-start gap-4 max-[721px]:grid-cols-1">
           {columns.map((c) => (
             <Column
               key={c.id}
