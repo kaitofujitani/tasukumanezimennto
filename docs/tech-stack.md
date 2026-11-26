@@ -58,7 +58,7 @@ flowchart LR
 | テーブルの作成・変更 | Flyway | テーブルを作る SQL をファイルとして残し、サーバーの起動時に自動で適用する。変更の履歴も番号付きのファイルで残るので、どのような形でデータを保存しているかがだれにでも分かる |
 | 入力のチェック | Bean Validation（spring-boot-starter-validation） | 「タイトルは空にできない」などのルールを、項目に注釈を付けるだけで書ける |
 | ログイン | Spring Security ＋ Spring Session JDBC | Spring の標準の安全対策の部品。ログイン状態をデータベースに保存するので、サーバーが休止・再起動してもログインが切れない |
-| テスト | JUnit 5 ＋ Spring Boot Test | Spring Boot に最初から入っているテストの部品 |
+| テスト | JUnit 5 ＋ Spring Boot Test ＋ Testcontainers | JUnit 5 と Spring Boot Test は Spring Boot に最初から入っているテストの部品。Testcontainers はテストのたびに使い捨ての PostgreSQL を Docker で起動する道具で、Spring Boot が標準で対応している（`@ServiceConnection`）。開発用のデータベースを用意しなくても、本番と同じ PostgreSQL でテストできる |
 | 静的チェック | Error Prone ＋ Checkstyle | Error Prone は Google が作っている、コンパイルのときによくあるバグの書き方を見つける道具。Checkstyle は Java で広く使われている書き方のチェック。どちらも Gradle のプラグインで動き、指摘があればビルドを止める |
 
 ### 3.2 画面（フロントエンド）
@@ -102,6 +102,7 @@ flowchart LR
 | | Spring Boot | 4.1.2 | `backend/build.gradle` の `plugins` |
 | | Error Prone | 2.53.0 | `backend/build.gradle` の `dependencies`（Gradle のプラグイン `net.ltgt.errorprone` 5.2.0 で動かす） |
 | | Checkstyle | 14.4.0 | `backend/build.gradle` の `checkstyle` |
+| | Testcontainers | 2.0.5 | Spring Boot が版を決めている（`backend/build.gradle` では版を書かない）。テストで起動する PostgreSQL の版は `TestcontainersConfiguration.java` の `postgres:18` |
 | | Gradle | 9.9.1 | `backend/gradle/wrapper/gradle-wrapper.properties`（`./gradlew` を使えば、この版が自動で使われる） |
 | | Flyway・Spring Security など Spring の部品 | Spring Boot 4.1.2 に合わせた版 | 個別には指定せず、Spring Boot に任せている |
 | データベース | PostgreSQL（開発用） | 18（確認時点では 18.7） | `backend/compose.yaml` の `postgres:18`。18 の中の細かい版は、イメージを取り直したときに上がる |

@@ -13,18 +13,21 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import com.example.taskboard.TestcontainersConfiguration;
 import com.example.taskboard.entity.BoardColumn;
 import com.example.taskboard.entity.Task;
 import com.example.taskboard.repository.BoardColumnRepository;
 import com.example.taskboard.repository.TaskRepository;
 
-/** 開発用 DB（compose.yaml）を使う。@Transactional でテスト後に書き込みは取り消される。 */
+/** テスト用の PostgreSQL（TestcontainersConfiguration）を使う。@Transactional でテスト後に書き込みは取り消される。 */
 @SpringBootTest
+@Import(TestcontainersConfiguration.class)
 @Transactional
 class BoardControllerTests {
 
@@ -42,7 +45,7 @@ class BoardControllerTests {
 	@BeforeEach
 	void setUp() {
 		mvc = MockMvcBuilders.webAppContextSetup(context).build();
-		// seed.sql を入れた DB でも結果が決まるよう、既存のタスクを消してから入れる（テスト後に取り消される）
+		// ほかのテストの書き込みに左右されないよう、既存のタスクを消してから入れる（テスト後に取り消される）
 		tasks.deleteAll();
 	}
 
