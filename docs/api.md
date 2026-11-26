@@ -52,8 +52,8 @@ flowchart LR
 ├── backend/                           サーバー（Java + Spring Boot）
 │   ├── src/main/java/com/example/taskboard/
 │   │   ├── TaskboardApplication.java  サーバーの起点
-│   │   ├── controller/                AuthController・BoardController・TaskController
-│   │   ├── service/                   TaskService（登録・移動・並べ替え）
+│   │   ├── controller/                AuthController・BoardController・TaskController・ApiExceptionHandler（エラーを 2章の形で返す）
+│   │   ├── service/                   BoardService（ボードの読み取り）・TaskService（登録・変更・削除・移動・並べ替え）・NotFoundException・BadRequestException
 │   │   ├── repository/                BoardColumnRepository・TaskRepository
 │   │   ├── entity/                    BoardColumn・Task（テーブルに対応するクラス）
 │   │   ├── dto/                       API で受け取る内容・返す内容の形
