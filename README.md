@@ -120,6 +120,8 @@ cd backend
 ./gradlew test
 ```
 
+PR を作ると、GitHub Actions（`.github/workflows/ci.yml`）が上と同じチェック（画面は `npm run lint`・`npm test`・`npm run build`、サーバーは `./gradlew check`）を自動で動かします。
+
 試作版（`index.html`）には自動テストがないので、ブラウザで操作して確かめます。
 
 ## 公開
