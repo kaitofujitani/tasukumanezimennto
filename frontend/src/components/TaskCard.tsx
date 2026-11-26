@@ -1,6 +1,6 @@
 // ボード画面のカード1枚（docs/screens.md の 2.2）
 import type { DragEvent } from "react";
-import { PRIORITY_BG, PRIORITY_LABEL, type Task } from "../types";
+import { PRIORITY_LABEL, type Task } from "../types";
 
 interface Props {
   task: Task;
@@ -58,13 +58,8 @@ export function TaskCard({ task, dragging, onOpen, onDelete, onDragStart, onDrag
         <div className="wrap-break-word" data-testid="task-title">
           {task.title}
         </div>
-        <div className="mt-1 flex items-center gap-2.5 text-[.8rem] text-muted">
-          <span
-            className={`rounded px-1.5 py-px text-[.75rem] font-semibold text-white ${PRIORITY_BG[task.priority]}`}
-            aria-label={`優先度: ${PRIORITY_LABEL[task.priority]}`}
-          >
-            {PRIORITY_LABEL[task.priority]}
-          </span>
+        <div className="mt-1 flex gap-2.5 text-[.8rem] text-muted">
+          <span>優先度: {PRIORITY_LABEL[task.priority]}</span>
           {task.due && <span>期限: {task.due.replaceAll("-", "/")}</span>}
         </div>
       </div>

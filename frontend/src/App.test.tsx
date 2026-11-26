@@ -135,7 +135,7 @@ describe("ボード画面", () => {
 
     const todo = await todoColumn();
     expect(within(todo).getByText("1")).toBeInTheDocument();
-    expect(within(todo).getByLabelText("優先度: 高")).toHaveTextContent("高");
+    expect(within(todo).getByText("優先度: 高")).toBeInTheDocument();
     expect(within(todo).getByText("期限: 2026/11/25")).toBeInTheDocument();
   });
 
@@ -277,7 +277,7 @@ describe("タスク詳細画面", () => {
         { method: "PATCH", path: "/api/tasks/%E8%B3%87%E6%96%99%E3%82%92%E4%BD%9C%E3%82%8B", body: { title: "見積書を作る" } },
       ]),
     );
-    expect(screen.getByLabelText("優先度: 高")).toBeInTheDocument();
+    expect(screen.getByText("優先度: 高")).toBeInTheDocument();
   });
 
   it("閉じるときに、まだ保存していない説明を保存する", async () => {

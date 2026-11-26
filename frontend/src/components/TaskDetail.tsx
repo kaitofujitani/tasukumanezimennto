@@ -1,6 +1,6 @@
 // S2 タスク詳細画面（docs/screens.md の 2.3）。ボード画面の上に <dialog> で重ねて表示する
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { PRIORITY_BG, type Column, type Priority, type Task, type TaskPatch } from "../types";
+import type { Column, Priority, Task, TaskPatch } from "../types";
 
 /** タイトルと説明は、入力がこの時間止まったらまとめて保存する */
 export const SAVE_DELAY_MS = 500;
@@ -133,15 +133,10 @@ export function TaskDetail({ task, columns, canMoveUp, canMoveDown, ...props }: 
         <div className={ROW_CLASS}>
           <label className={LABEL_CLASS}>
             優先度
-            {/* 選んでいる優先度の色で表示する。開いた一覧は通常の色に戻して読みやすくする */}
-            <select
-              className={`border-transparent font-semibold text-white! ${PRIORITY_BG[task.priority]}`}
-              value={task.priority}
-              onChange={(e) => props.onSave({ priority: e.target.value as Priority })}
-            >
-              <option className="bg-card font-normal text-fg" value="high">高</option>
-              <option className="bg-card font-normal text-fg" value="mid">中</option>
-              <option className="bg-card font-normal text-fg" value="low">低</option>
+            <select value={task.priority} onChange={(e) => props.onSave({ priority: e.target.value as Priority })}>
+              <option value="high">高</option>
+              <option value="mid">中</option>
+              <option value="low">低</option>
             </select>
           </label>
           <label className={LABEL_CLASS}>
