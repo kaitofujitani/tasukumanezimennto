@@ -18,7 +18,7 @@ COPY backend/gradle ./gradle
 RUN ./gradlew --no-daemon dependencies > /dev/null
 COPY backend/src ./src
 COPY --from=frontend /app/frontend/dist ./src/main/resources/static
-# テストは開発用のデータベースが必要なので、ここでは実行しない（開発中に ./gradlew test で確かめる）
+# テストは Testcontainers で Docker を使うので、イメージのビルドの中では実行しない（開発中に ./gradlew test で確かめる）
 RUN ./gradlew --no-daemon bootJar
 
 # ④ 起動する。Java の実行環境（JRE）だけの小さいイメージに jar を入れ、管理者ではないユーザーで動かす

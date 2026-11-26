@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
@@ -21,6 +22,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import com.example.taskboard.TestcontainersConfiguration;
+
 import jakarta.servlet.http.Cookie;
 
 /**
@@ -28,6 +31,7 @@ import jakarta.servlet.http.Cookie;
  * ほかのテストと違い、Spring Security の仕組みを通して確かめる。パスワードは src/test/resources/config の test-password
  */
 @SpringBootTest
+@Import(TestcontainersConfiguration.class)
 @Transactional
 class AuthTests {
 

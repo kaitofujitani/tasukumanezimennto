@@ -115,7 +115,7 @@ cd frontend
 npm test          # Vitest + React Testing Library
 npm run build     # 型チェックとビルド（dist/ に出力）
 
-# サーバー（開発用の DB を起動した状態で）
+# サーバー（Docker Desktop を起動した状態で。テスト用の PostgreSQL は自動で起動する）
 cd backend
 ./gradlew test
 ```

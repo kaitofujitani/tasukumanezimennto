@@ -33,6 +33,9 @@ dependencies {
 	runtimeOnly 'org.postgresql:postgresql'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
+	// テストのたびに使い捨ての PostgreSQL を Docker で起動する（src/test/java の TestcontainersConfiguration）
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:testcontainers-postgresql'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	errorprone 'com.google.errorprone:error_prone_core:2.53.0'
 }
