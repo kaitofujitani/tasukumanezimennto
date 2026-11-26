@@ -49,32 +49,34 @@ export function Board({ onUnauthorized, onLoggedOut }: Props) {
 
   useEffect(() => () => window.clearTimeout(bannerTimer.current), []);
 
-  /** ボードを読み込む。showStatus が false のときは、今の表示のまま裏で読み込み直す */
+  /**
+   * ボードを読み込む。showStatus が false のときは、今の表示のまま裏で読み込み直す。
+   * 読み込み中の表示（loadState を "loading" にする）は呼ぶ側で行う（最初の読み込みは初期値が "loading"）
+   */
   const load = useCallback(
-    async (showStatus: boolean) => {
-      let slowTimer: number | undefined;
-      if (showStatus) {
-        setLoadState("loading");
-        slowTimer = window.setTimeout(
-          () => setLoadState((s) => (s === "loading" ? "slow" : s)),
-          SLOW_NOTICE_MS,
-        );
-      }
-      try {
-        const board = await api.getBoard();
-        setColumns([...board.columns].sort((a, b) => a.position - b.position));
-        setTasks(board.tasks);
-        setLoadState("ready");
-      } catch (e) {
-        if (e instanceof ApiError && e.status === 401) {
-          onUnauthorized();
-        } else {
-          setLoadState("error");
-          showBanner("読み込めませんでした", true);
-        }
-      } finally {
-        window.clearTimeout(slowTimer);
-      }
+    (showStatus: boolean) => {
+      const slowTimer = showStatus
+        ? window.setTimeout(() => setLoadState((s) => (s === "loading" ? "slow" : s)), SLOW_NOTICE_MS)
+        : undefined;
+      // 画面の書き換えは通信が終わったあと（then の中）だけで行う。effect の中から呼んでも、すぐには state を変えない
+      return api
+        .getBoard()
+        .then(
+          (board) => {
+            setColumns(board.columns.toSorted((a, b) => a.position - b.position));
+            setTasks(board.tasks);
+            setLoadState("ready");
+          },
+          (e: unknown) => {
+            if (e instanceof ApiError && e.status === 401) {
+              onUnauthorized();
+            } else {
+              setLoadState("error");
+              showBanner("読み込めませんでした", true);
+            }
+          },
+        )
+        .finally(() => window.clearTimeout(slowTimer));
     },
     [onUnauthorized, showBanner],
   );
@@ -172,11 +174,8 @@ export function Board({ onUnauthorized, onLoggedOut }: Props) {
 
   // ---- 詳細画面 ----
 
+  // 読み込み直しなどで開いていたタスクがなくなったら、詳細画面は表示しない
   const editing = editingId ? tasks.find((t) => t.id === editingId) : undefined;
-  // 読み込み直しなどで開いていたタスクがなくなったら、詳細画面を閉じる
-  useEffect(() => {
-    if (editingId && !editing) setEditingId(null);
-  }, [editingId, editing]);
 
   function detail(task: Task) {
     const same = tasksIn(tasks, task.columnId);
@@ -216,6 +215,7 @@ export function Board({ onUnauthorized, onLoggedOut }: Props) {
               className="border-none bg-white px-2.5 py-1 font-semibold text-[#b91c1c]"
               onClick={() => {
                 setBanner(null);
+                setLoadState("loading");
                 load(true);
               }}
             >

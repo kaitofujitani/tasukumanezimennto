@@ -45,6 +45,8 @@ export function LoginPage({ onLoggedIn }: Props) {
             ref={inputRef}
             type="password"
             autoComplete="current-password"
+            // この画面でできるのはパスワードの入力だけなので、開いたらすぐ入力できるようにする
+            // oxlint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
             value={password}
             onChange={(e) => setPassword(e.target.value)}

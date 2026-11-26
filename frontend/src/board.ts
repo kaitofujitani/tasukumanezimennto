@@ -4,7 +4,7 @@ import type { Task, TaskPatch } from "./types";
 
 /** 指定した列のタスクを上から順に返す */
 export function tasksIn(tasks: Task[], columnId: number): Task[] {
-  return tasks.filter((t) => t.columnId === columnId).sort((a, b) => a.position - b.position);
+  return tasks.filter((t) => t.columnId === columnId).toSorted((a, b) => a.position - b.position);
 }
 
 function renumber(list: Task[]): Task[] {
