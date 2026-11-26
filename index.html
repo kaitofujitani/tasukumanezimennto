@@ -260,6 +260,8 @@
     del.setAttribute("aria-label", "削除");
     del.onclick = (e) => {
       e.stopPropagation(); // カードのクリック（詳細画面を開く）まで伝わらないようにする
+      // 元に戻せないので、詳細画面の「削除」と同じく確認してから消す
+      if (!confirm(`「${c.title}」を削除しますか？`)) return;
       cards = cards.filter(x => x !== c); save(); render();
     };
 
