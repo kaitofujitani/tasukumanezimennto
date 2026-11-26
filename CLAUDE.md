@@ -61,7 +61,7 @@ React 版（`frontend/`）は mock/index.html の見た目と動きを移した�
    - type: `feat`（機能追加）/ `fix`（不具合修正）/ `docs`（資料）/ `refactor`（動作を変えない整理）/ `chore`（設定・依存関係など）/ `test`（テスト）/ `style`（見た目だけの整形）
    - 例: `feat: ログイン機能を追加`、`fix: ドラッグ後に並び順が崩れる不具合を修正`、`docs: API 仕様書を更新`
    - 全体設定（`~/.claude/CLAUDE.md`）の「日本語で一行」より、このプロジェクトではこの形式を優先する。
-4. **PR を作る**: ブランチを push し `gh pr create` で PR を作る（テンプレートは `.github/pull_request_template.md`）。タイトルもコミットと同じ Conventional Commits 形式にする。本文に `Closes #issue番号` を入れ、マージ時に Issue が自動で閉じるようにする。
+4. **PR を作る**: ブランチを push し `gh pr create` で PR を作る（テンプレートは `.github/pull_request_template.md`）。タイトルもコミットと同じ Conventional Commits 形式にする。本文に `Closes #issue番号` を入れ、マージ時に Issue が自動で閉じるようにする。PR を作ると GitHub Actions（`.github/workflows/ci.yml`）が、画面の lint・テスト・ビルドと、サーバーの `./gradlew check` を動かす。失敗したら直してからマージする。
 5. **マージ**: ユーザーの確認を得てから行う。マージ後は作業ブランチを削除する。
 
 `main` への直接 commit / push は禁止。GitHub の Ruleset（`protect-main`）で PR 必須・強制 push 禁止・ブランチ削除禁止にしてあり、Claude Code でも `.claude/hooks/guard-main.sh` が main 上の `git commit` と main への `git push` を止める。GitHub Pages は `main` から公開しているため、PR がマージされた時点で反映される。
