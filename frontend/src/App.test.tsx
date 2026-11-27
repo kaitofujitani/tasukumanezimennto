@@ -221,9 +221,9 @@ describe("ボード画面", () => {
 
   it("登録の返事を待っている間は並べ替えを押せない", async () => {
     const server = fakeServer();
-    let respond: (res: Response) => void = () => {};
-    server.override["POST /api/tasks"] = () =>
-      new Promise<Response>((resolve) => (respond = resolve)) as unknown as Response;
+    // 登録の返事は、respond を呼ぶまで返さない
+    const { promise, resolve: respond } = Promise.withResolvers<Response>();
+    server.override["POST /api/tasks"] = () => promise as unknown as Response;
     const user = userEvent.setup();
     render(<App />);
     const todo = await todoColumn();
