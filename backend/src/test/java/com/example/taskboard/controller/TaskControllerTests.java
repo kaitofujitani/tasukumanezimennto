@@ -211,6 +211,18 @@ class TaskControllerTests {
 	}
 
 	@Test
+	void 全角スペースだけのタイトルは登録も変更も400() throws Exception {
+		postTask("{\"columnId\": " + todo.getId() + ", \"title\": \"　　\"}")
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("タイトルを入力してください"));
+		patchTask(first.getId(), "{\"title\": \"　\"}")
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.error").value("タイトルを入力してください"));
+		mvc.perform(get("/api/tasks/{id}", first.getId()))
+				.andExpect(jsonPath("$.title").value("未着手の1つ目"));
+	}
+
+	@Test
 	void 決まっていない優先度は400() throws Exception {
 		patchTask(first.getId(), "{\"priority\": \"urgent\"}")
 				.andExpect(status().isBadRequest())
