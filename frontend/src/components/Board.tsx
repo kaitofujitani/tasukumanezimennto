@@ -232,7 +232,9 @@ export function Board({ onUnauthorized, onLoggedOut }: Props) {
             <option value="due">期限順</option>
             <option value="created">登録順</option>
           </select>
-          <button type="button" onClick={sort} disabled={loadState !== "ready"}>
+          {/* 登録の返事を待っているカードがある間も押せない。並べ替えの結果でボードを差し替えると、
+              返事を待っているカードが消え、登録したタスクが読み込み直すまで出てこなくなるため */}
+          <button type="button" onClick={sort} disabled={loadState !== "ready" || tasks.some((t) => t.pending)}>
             並べ替え
           </button>
           <button type="button" onClick={logout}>
