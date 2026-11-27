@@ -69,3 +69,4 @@ React 版（`frontend/`）は mock/index.html の見た目と動きを移した�
 
 - UI の文言は日本語、識別子は英語。
 - ユーザー入力は `textContent` で挿入する（`innerHTML` は固定文字列のみ）。
+- 品質のレビュー（資料と実装の食い違い、React・Spring Boot の決まった書き方、セキュリティ、アクセシビリティ、自動チェック）の観点と手順は、Claude Code のスキル `/quality-review`（[.claude/skills/quality-review/SKILL.md](.claude/skills/quality-review/SKILL.md)）にまとめてある。資料と実装が食い違ったときにどちらを正とするかの基準もここにある。
