@@ -41,9 +41,13 @@ export function Column(props: Props) {
     inputRef.current?.focus(); // 続けて入力できるよう、カーソルを残す
   }
 
-  /** マウスの位置より下にある最初のカード（＝落とす位置の直後のカード）の id。なければ null（一番下） */
+  /**
+   * マウスの位置より下にある最初のカード（＝落とす位置の直後のカード）の id。なければ null（一番下）。
+   * ドラッグ中のカードと、登録の返事を待っているカード（仮の id はサーバーが知らない）は除く
+   */
   function beforeIdAt(y: number): string | null {
-    const cards = listRef.current?.querySelectorAll<HTMLElement>("[data-id]:not([data-dragging])") ?? [];
+    const cards =
+      listRef.current?.querySelectorAll<HTMLElement>("[data-id]:not([data-dragging]):not([data-pending])") ?? [];
     for (const el of cards) {
       const r = el.getBoundingClientRect();
       if (y < r.top + r.height / 2) return el.dataset.id ?? null;

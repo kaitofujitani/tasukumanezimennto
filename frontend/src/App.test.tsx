@@ -1,5 +1,5 @@
 // 画面の動きのテスト。fetch を偽のサーバーに差し替え、送った API と画面の表示を確かめる
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { createEvent, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
@@ -237,7 +237,36 @@ describe("ボード画面", () => {
     });
     expect(server.calls).toContainEqual({ method: "POST", path: "/api/tasks/sort", body: { by: "due" } });
   });
+
+  it("登録の返事を待っているカードは、落とす位置の目印にしない", async () => {
+    const server = fakeServer({ tasks: [task("買い物", 2, 0)] });
+    server.override["POST /api/tasks"] = () => new Promise<Response>(() => {}) as unknown as Response; // 返事が来ない
+    // jsdom は要素の位置を計算しないので、どのカードも上端 10px・高さ 20px にする
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 10, 100, 20));
+    const user = userEvent.setup();
+    render(<App />);
+    const todo = await todoColumn();
+    await user.type(within(todo).getByLabelText("未着手にカードを追加"), "登録中{Enter}");
+
+    // 「買い物」を、未着手の返事待ちのカードより上（y=0）に落とす
+    drag("dragStart", screen.getByText("買い物"));
+    drag("dragOver", todo, 0);
+    drag("drop", todo, 0);
+
+    await waitFor(() =>
+      expect(server.calls).toContainEqual({
+        method: "POST", path: "/api/tasks/%E8%B2%B7%E3%81%84%E7%89%A9/move", body: { columnId: 1, beforeId: null },
+      }),
+    );
+  });
 });
+
+/** ドラッグのイベントを送る。jsdom にはドラッグのイベントの clientY と dataTransfer がないので足す */
+function drag(type: "dragStart" | "dragOver" | "drop", el: Element, clientY = 0) {
+  const event = createEvent[type](el, { dataTransfer: { setData: () => {}, effectAllowed: "" } });
+  Object.defineProperty(event, "clientY", { value: clientY });
+  fireEvent(el, event);
+}
 
 describe("タスク詳細画面", () => {
   it.each(["{Enter}", " "])("カードはキーボードで選んで %s でも開ける", async (key) => {

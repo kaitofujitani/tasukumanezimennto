@@ -35,6 +35,8 @@ export function TaskCard({ task, dragging, onOpen, onDelete, onDragStart, onDrag
       data-id={task.id}
       // ドラッグ中のカードの印。落とす位置を求めるとき（Column の beforeIdAt）に除く
       data-dragging={dragging || undefined}
+      // 登録の返事を待っているカードの印。まだ仮の id なので、落とす位置の目印（beforeId）にしない
+      data-pending={pending || undefined}
     >
       {/* 詳細画面を開く・ドラッグでつかむ部分。li は一覧の項目のままにし、押せる部分をこの要素に分ける。
           ×ボタンはボタンの中に入れられないので、この要素の隣に置く。
