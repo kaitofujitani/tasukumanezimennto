@@ -2,6 +2,7 @@ package com.example.taskboard.dto;
 
 import java.time.LocalDate;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Pattern;
 
 /**
@@ -11,8 +12,7 @@ import jakarta.validation.constraints.Pattern;
  */
 public class UpdateTaskRequest {
 
-	/** 空白だけは空とみなす（docs/screens.md 3章）。前後の空白は保存時に取り除く */
-	@Pattern(regexp = "(?s).*\\S.*", message = "タイトルを入力してください")
+	/** 前後の空白は保存時に取り除く。空白だけかどうかは isTitleFilled で確かめる */
 	private String title;
 
 	private String description;
@@ -30,6 +30,16 @@ public class UpdateTaskRequest {
 
 	public void setTitle(String title) {
 		this.title = title;
+	}
+
+	/**
+	 * タイトルを送ったなら、空白だけではないこと（docs/screens.md 3章）。
+	 * 保存時の strip() と同じ空白の定義（全角スペースも含む）で確かめる。登録の @NotBlank も同じ判定。
+	 * 正規表現の \S は全角スペースを空白とみなさず、strip() で空になって 500 になっていた（#78）
+	 */
+	@AssertTrue(message = "タイトルを入力してください")
+	public boolean isTitleFilled() {
+		return title == null || !title.isBlank();
 	}
 
 	public String getDescription() {
