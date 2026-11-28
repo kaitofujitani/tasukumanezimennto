@@ -219,6 +219,27 @@ describe("ボード画面", () => {
     expect(await screen.findByText("資料を作る")).toBeInTheDocument();
   });
 
+  it("登録の返事を待っている間は並べ替えを押せない", async () => {
+    const server = fakeServer();
+    // 登録の返事は、respond を呼ぶまで返さない
+    let respond: ((res: Response) => void) | undefined;
+    server.override["POST /api/tasks"] = () =>
+      new Promise<Response>((resolve) => {
+        respond = resolve;
+      }) as unknown as Response;
+    const user = userEvent.setup();
+    render(<App />);
+    const todo = await todoColumn();
+    const sortButton = screen.getByRole("button", { name: "並べ替え" });
+    expect(sortButton).toBeEnabled();
+
+    await user.type(within(todo).getByLabelText("未着手にカードを追加"), "登録中{Enter}");
+    expect(sortButton).toBeDisabled();
+
+    respond?.(json(201, task("new-id", 1, 2, { title: "登録中" })));
+    await waitFor(() => expect(sortButton).toBeEnabled());
+  });
+
   it("選んだ並べ方で並べ替え、サーバーが返した順に表示する", async () => {
     const server = fakeServer();
     server.override["POST /api/tasks/sort"] = () =>
